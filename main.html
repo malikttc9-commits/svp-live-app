@@ -2554,7 +2554,11 @@
 
             // Update agent filter
             const agents = [...new Set(allUsers.map(u => u.agentReference).filter(Boolean))];
-            const trades = [...new Set(allUsers.map(u => u.trade).filter(Boolean))];
+            const tradePool = [
+                ...(DB.get('trades', []) || []),
+                ...allUsers.map(u => u.trade).filter(Boolean)
+            ];
+            const trades = [...new Set(tradePool.map(t => String(t).trim()).filter(Boolean))];
             const filterSelect = document.getElementById('agentFilterSelect');
             const tradeSelect = document.getElementById('userTradeFilter');
             const currentVal = filterSelect.value;
