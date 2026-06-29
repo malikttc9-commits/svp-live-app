@@ -1,0 +1,38 @@
+{
+  "admins": [
+    {
+      "id": "main-admin",
+      "name": "Main Admin",
+      "email": "admin@admin.com",
+      "passwordHash": "$2a$10$g3yX6aAB4WvX180KwPK0we8EUhd7S4Gku5PN6mQ36c.VpqZw758zu",
+      "role": "main",
+      "active": true,
+      "permissions": {
+        "canManageUsers": true,
+        "canManageQuestions": true,
+        "canManageSettings": true,
+        "canViewReports": true,
+        "canManageAdminAccess": true
+      },
+      "createdAt": "2026-06-29T06:52:20.219Z"
+    }
+  ],
+  "users": [],
+  "questions": [],
+  "settings": {
+    "questionsPerAttempt": 30,
+    "maxAttempts": 15,
+    "validityDays": 10,
+    "passingScore": 80
+  },
+  "trades": [
+    "Construction Visa",
+    "Driver Visa",
+    "House Driver Visa",
+    "Worker Visa",
+    "Business Visa"
+  ],
+  "counters": {
+    "userCount": 0
+  }
+}
