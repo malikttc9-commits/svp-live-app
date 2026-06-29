@@ -104,6 +104,28 @@ router.put('/bulk', requirePermission('canManageUsers'), async (req, res) => {
   const users = Array.isArray(req.body?.users) ? req.body.users : null;
   if (!users) return res.status(400).json({ message: 'users array is required' });
 
+  const allowEmpty = req.body?.allowEmpty === true;
+  const forceReplaceAll = req.body?.forceReplaceAll === true;
+  const currentDb = await readDb();
+  const currentUsers = Array.isArray(currentDb.users) ? currentDb.users : [];
+
+  if (!allowEmpty && currentUsers.length > 0 && users.length === 0) {
+    return res.status(409).json({
+      message: 'Refusing to replace existing candidates with an empty list without allowEmpty=true',
+    });
+  }
+
+  const currentIds = new Set(currentUsers.map(u => String(u?.id || '').trim()).filter(Boolean));
+  const incomingIds = new Set(users.map(u => String(u?.id || '').trim()).filter(Boolean));
+  const missingIds = Array.from(currentIds).filter(id => !incomingIds.has(id));
+
+  if (!forceReplaceAll && missingIds.length > 0) {
+    return res.status(409).json({
+      message: 'Refusing bulk overwrite because it would remove existing candidates. Use forceReplaceAll=true only for intentional destructive actions.',
+      missingCount: missingIds.length,
+    });
+  }
+
   const nextDb = await updateDb(async db => {
     db.users = users;
     db.counters = db.counters || { userCount: 0 };

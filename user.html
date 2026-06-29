@@ -1898,10 +1898,27 @@
                     return false;
                 }
             },
-            async syncUsers(users) {
+            async syncUsers(users, options = {}) {
                 const adminToken = getAdminToken();
                 if (adminToken) {
-                    try { await apiRequest('/users/bulk', { method: 'PUT', body: JSON.stringify({ users }) }, adminToken); } catch {}
+                    try {
+                        await apiRequest('/users/bulk', {
+                            method: 'PUT',
+                            body: JSON.stringify({
+                                users,
+                                allowEmpty: options.allowEmpty === true,
+                                forceReplaceAll: options.forceReplaceAll === true
+                            })
+                        }, adminToken);
+                    } catch (err) {
+                        const msg = String(err && err.message ? err.message : err || '');
+                        if (msg.toLowerCase().includes('refusing bulk overwrite')) {
+                            showToast('Protected: accidental candidate data overwrite blocked. Reloading latest data.', 'error');
+                            this.hydrateAdminCache().then(() => {
+                                if (typeof adminLoadUsers === 'function') adminLoadUsers();
+                            }).catch(() => {});
+                        }
+                    }
                     return;
                 }
 
@@ -1967,7 +1984,7 @@
             },
             set(key, val) { localStorage.setItem('visa_' + key, JSON.stringify(val)); },
             getUsers() { return this.get('users', []); },
-            setUsers(users) { this.set('users', users); BackendBridge.syncUsers(users); },
+            setUsers(users, options = {}) { this.set('users', users); BackendBridge.syncUsers(users, options); },
             getQuestions() { return this.get('questions', []); },
             setQuestions(qs, options = {}) { this.set('questions', qs); BackendBridge.syncQuestions(qs, options); },
             getSettings() {
@@ -3595,9 +3612,24 @@
                 return;
             }
             if (!confirm('Delete this user?')) return;
+            const token = getAdminToken();
+            if (token) {
+                apiRequest(`/users/${encodeURIComponent(id)}`, { method: 'DELETE' }, token)
+                    .then(() => BackendBridge.hydrateAdminCache())
+                    .then(() => {
+                        showToast('Candidate deleted', 'success');
+                        adminLoadUsers();
+                        adminLoadDashboard();
+                    })
+                    .catch(() => {
+                        showToast('Failed to delete candidate from server.', 'error');
+                    });
+                return;
+            }
+
             let users = DB.getUsers();
             users = users.filter(u => u.id !== id);
-            DB.setUsers(users);
+            DB.setUsers(users, { forceReplaceAll: true, allowEmpty: users.length === 0 });
             showToast('Candidate deleted', 'success');
             adminLoadUsers();
             adminLoadDashboard();
