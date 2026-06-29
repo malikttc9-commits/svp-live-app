@@ -41,9 +41,17 @@
             unicode-bidi: plaintext;
             line-height: 2;
         }
+        .urdu-text,
+        .urdu-text * {
+            font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif !important;
+        }
         .report-nastaleeq {
             font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif;
             line-height: 2;
+        }
+        .report-nastaleeq,
+        .report-nastaleeq * {
+            font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif !important;
         }
         ::-webkit-scrollbar {
             width: 6px;
@@ -1425,10 +1433,15 @@
                 if (!token) return;
                 try { await apiRequest('/users/bulk', { method: 'PUT', body: JSON.stringify({ users }) }, token); } catch {}
             },
-            async syncQuestions(questions) {
+            async syncQuestions(questions, options = {}) {
                 const token = getAdminToken();
                 if (!token) return;
-                try { await apiRequest('/questions/bulk', { method: 'PUT', body: JSON.stringify({ questions }) }, token); } catch {}
+                try {
+                    await apiRequest('/questions/bulk', {
+                        method: 'PUT',
+                        body: JSON.stringify({ questions, allowEmpty: options.allowEmpty === true })
+                    }, token);
+                } catch {}
             },
             async syncSettings(settings) {
                 const token = getAdminToken();
@@ -1468,9 +1481,9 @@
             getQuestions() {
                 return this.get('questions', []);
             },
-            setQuestions(qs) {
+            setQuestions(qs, options = {}) {
                 this.set('questions', qs);
-                BackendBridge.syncQuestions(qs);
+                BackendBridge.syncQuestions(qs, options);
             },
             getSettings() {
                 const defaults = { questionsPerAttempt: 30, maxAttempts: 15, validityDays: 10, passingScore: 80 };
@@ -2248,7 +2261,7 @@
             const trades = getTrades().filter(t => t !== trade);
             setTrades(trades);
             const questions = DB.getQuestions().filter(q => q.trade !== trade);
-            DB.setQuestions(questions);
+            DB.setQuestions(questions, { allowEmpty: questions.length === 0 });
             populateTradeSelects();
             loadQuestions();
             showToast(`Trade "${trade}" deleted successfully.`, 'success');
@@ -2264,7 +2277,7 @@
             if (!confirm(`Delete all MCQs for trade "${trade}"?`)) return;
 
             const questions = DB.getQuestions().filter(q => q.trade !== trade);
-            DB.setQuestions(questions);
+            DB.setQuestions(questions, { allowEmpty: questions.length === 0 });
             loadQuestions();
             showToast(`All MCQs for "${trade}" deleted successfully.`, 'success');
         }

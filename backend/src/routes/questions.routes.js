@@ -56,6 +56,16 @@ router.put('/bulk', requirePermission('canManageQuestions'), async (req, res) =>
   const questions = Array.isArray(req.body?.questions) ? req.body.questions : null;
   if (!questions) return res.status(400).json({ message: 'questions array is required' });
 
+  const allowEmpty = req.body?.allowEmpty === true;
+  const currentDb = await readDb();
+  const currentQuestions = Array.isArray(currentDb.questions) ? currentDb.questions : [];
+
+  if (!allowEmpty && currentQuestions.length > 0 && questions.length === 0) {
+    return res.status(409).json({
+      message: 'Refusing to replace an existing question bank with an empty list without allowEmpty=true',
+    });
+  }
+
   const nextDb = await updateDb(async db => {
     db.questions = questions;
     return db;
