@@ -2292,9 +2292,10 @@
             return role === 'super' || role === 'main';
         }
 
-        function isMainAdmin() {
+        function canManageDatabaseBackup() {
             if (!currentAdmin) return false;
-            return (currentAdmin.role || '') === 'main';
+            const role = currentAdmin.role || '';
+            return role === 'main' || role === 'super';
         }
 
         function canDeleteUser() {
@@ -2595,7 +2596,7 @@
                     `;
             }
 
-            if (isMainAdmin()) {
+            if (canManageDatabaseBackup()) {
                 actionsHtml += `
                         <button onclick="exportDatabaseSnapshot()" class="btn-quick bg-emerald-600 text-white px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition-all text-sm font-medium flex items-center gap-2">
                             <i class="fas fa-database"></i> Export Database
@@ -3256,8 +3257,8 @@
         }
 
         async function exportDatabaseSnapshot() {
-            if (!isMainAdmin()) {
-                showToast('Only main admin can export database.', 'error');
+            if (!canManageDatabaseBackup()) {
+                showToast('Only main/super admin can export database.', 'error');
                 return;
             }
 
@@ -3290,8 +3291,8 @@
         }
 
         function openDatabaseImportPicker() {
-            if (!isMainAdmin()) {
-                showToast('Only main admin can import database.', 'error');
+            if (!canManageDatabaseBackup()) {
+                showToast('Only main/super admin can import database.', 'error');
                 return;
             }
             const input = document.getElementById('dbImportInput');
@@ -3304,8 +3305,8 @@
             const file = event?.target?.files?.[0];
             if (!file) return;
 
-            if (!isMainAdmin()) {
-                showToast('Only main admin can import database.', 'error');
+            if (!canManageDatabaseBackup()) {
+                showToast('Only main/super admin can import database.', 'error');
                 return;
             }
 

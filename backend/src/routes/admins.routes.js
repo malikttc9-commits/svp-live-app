@@ -10,10 +10,6 @@ function isMainOrSuper(auth) {
   return role === 'main' || role === 'super';
 }
 
-function isMainOnly(auth) {
-  return (auth?.role || '') === 'main';
-}
-
 function normalizeImportedDb(rawDb) {
   if (!rawDb || typeof rawDb !== 'object' || Array.isArray(rawDb)) {
     throw new Error('Invalid database payload');
@@ -43,7 +39,7 @@ function normalizeImportedDb(rawDb) {
 }
 
 router.get('/db/export', requireAdmin, async (req, res) => {
-  if (!isMainOnly(req.auth)) return res.status(403).json({ message: 'Only main admin can export database' });
+  if (!isMainOrSuper(req.auth)) return res.status(403).json({ message: 'Only main/super admin can export database' });
 
   const db = await readDb();
   res.json({
@@ -53,7 +49,7 @@ router.get('/db/export', requireAdmin, async (req, res) => {
 });
 
 router.post('/db/import', requireAdmin, async (req, res) => {
-  if (!isMainOnly(req.auth)) return res.status(403).json({ message: 'Only main admin can import database' });
+  if (!isMainOrSuper(req.auth)) return res.status(403).json({ message: 'Only main/super admin can import database' });
 
   try {
     const source = req.body?.data ?? req.body;
