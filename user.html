@@ -423,9 +423,13 @@
             right: 0;
             background: #fff;
             border-top: 1px solid #e2e8f0;
-            padding: 8px 0 env(safe-area-inset-bottom, 8px) 0;
+            padding: 8px 6px env(safe-area-inset-bottom, 8px) 6px;
             z-index: 100;
-            justify-content: space-around;
+            justify-content: flex-start;
+            gap: 4px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
         }
         .bottom-nav .nav-item {
             display: flex;
@@ -434,6 +438,8 @@
             font-size: 10px;
             color: #94a3b8;
             padding: 4px 12px;
+            min-width: 72px;
+            flex: 0 0 auto;
             cursor: pointer;
             transition: all 0.2s ease;
             border: none;
@@ -1430,6 +1436,11 @@
             </div>
 
         </div><!-- end main-content -->
+
+        <!-- Bottom Nav (mobile admin) -->
+        <div class="bottom-nav no-print" id="adminBottomNav">
+            <!-- Populated by JS -->
+        </div>
     </div><!-- end adminApp -->
 
     <!-- ============================================================ -->
@@ -2164,6 +2175,31 @@
             document.querySelectorAll('.sidebar-link').forEach(el => {
                 const page = el.dataset.page;
                 el.classList.toggle('hidden', !canAccessAdminPage(page));
+            });
+            renderAdminBottomNav();
+        }
+
+        function renderAdminBottomNav() {
+            const bottomNav = document.getElementById('adminBottomNav');
+            if (!bottomNav) return;
+
+            const activePage = document.querySelector('#adminApp .sidebar-link.active')?.dataset.page || 'dashboard';
+            const visibleLinks = Array.from(document.querySelectorAll('#adminApp .sidebar-link')).filter(el => !el.classList.contains('hidden'));
+
+            bottomNav.innerHTML = visibleLinks.map(el => {
+                const page = el.dataset.page || '';
+                const iconClass = el.querySelector('i')?.className || 'fas fa-circle';
+                const label = (el.textContent || '').trim().replace(/\s+/g, ' ');
+                return `
+                    <button class="nav-item ${page === activePage ? 'active' : ''}" data-page="${page}" type="button">
+                        <i class="${iconClass}"></i>
+                        <span>${label}</span>
+                    </button>
+                `;
+            }).join('');
+
+            bottomNav.querySelectorAll('.nav-item').forEach(btn => {
+                btn.addEventListener('click', () => adminNavigateTo(btn.dataset.page));
             });
         }
 
@@ -3183,6 +3219,7 @@
             document.querySelectorAll('.sidebar-link').forEach(el => {
                 el.classList.toggle('active', el.dataset.page === page);
             });
+            renderAdminBottomNav();
 
             const titles = {
                 dashboard: ['Dashboard', 'Overview of your system'],
