@@ -5,9 +5,13 @@ import { requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
+function normalizeRole(role) {
+  return String(role || '').trim().toLowerCase();
+}
+
 function isMainOrSuper(auth) {
-  const role = auth?.role || '';
-  return role === 'main' || role === 'super';
+  const role = normalizeRole(auth?.role);
+  return role === 'main' || role === 'super' || role === 'super admin' || role === 'admin';
 }
 
 function normalizeImportedDb(rawDb) {

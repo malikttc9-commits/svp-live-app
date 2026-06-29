@@ -2286,16 +2286,23 @@
         // ============================================================
         // PERMISSION CHECKS
         // ============================================================
+        function normalizeAdminRole(role) {
+            return String(role || '').trim().toLowerCase();
+        }
+
+        function hasElevatedAdminRole(role) {
+            const normalized = normalizeAdminRole(role);
+            return normalized === 'main' || normalized === 'super' || normalized === 'super admin' || normalized === 'admin';
+        }
+
         function isSuperAdmin() {
             if (!currentAdmin) return false;
-            const role = currentAdmin.role || '';
-            return role === 'super' || role === 'main';
+            return hasElevatedAdminRole(currentAdmin.role);
         }
 
         function canManageDatabaseBackup() {
             if (!currentAdmin) return false;
-            const role = currentAdmin.role || '';
-            return role === 'main' || role === 'super';
+            return hasElevatedAdminRole(currentAdmin.role);
         }
 
         function canDeleteUser() {
@@ -2452,14 +2459,14 @@
             const admins = DB.getAdmins();
             const found = backendAdmin || admins.find(a => a.email === email && a.password === password);
             if (found) {
-                currentAdmin = { ...found, role: found.role || 'staff' };
+                currentAdmin = { ...found, role: normalizeAdminRole(found.role || 'staff') };
                 sessionStorage.setItem('visa_admin_logged', 'true');
                 sessionStorage.setItem('visa_admin_email', email);
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('appScreen').classList.remove('hidden');
                 document.getElementById('adminName').textContent = found.name || 'Admin';
                 document.getElementById('adminInitial').textContent = (found.name || 'A').charAt(0).toUpperCase();
-                document.getElementById('userRoleDisplay').textContent = (found.role === 'super' || found.role === 'main') ? 'Super Admin' :
+                document.getElementById('userRoleDisplay').textContent = hasElevatedAdminRole(found.role) ? 'Super Admin' :
                     'Staff Admin';
                 showToast('Welcome, ' + (found.name || 'Admin') + '!', 'success');
                 // Build sidebar based on role
@@ -4221,12 +4228,12 @@
             const admins = DB.getAdmins();
             const found = admins.find(a => a.email === email);
             if (found) {
-                currentAdmin = { ...found, role: found.role || 'staff' };
+                currentAdmin = { ...found, role: normalizeAdminRole(found.role || 'staff') };
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('appScreen').classList.remove('hidden');
                 document.getElementById('adminName').textContent = found.name || 'Admin';
                 document.getElementById('adminInitial').textContent = (found.name || 'A').charAt(0).toUpperCase();
-                document.getElementById('userRoleDisplay').textContent = (found.role === 'super' || found.role === 'main') ? 'Super Admin' :
+                document.getElementById('userRoleDisplay').textContent = hasElevatedAdminRole(found.role) ? 'Super Admin' :
                     'Staff Admin';
                 buildSidebar();
                 navigateTo('dashboard');
