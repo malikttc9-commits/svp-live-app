@@ -2554,7 +2554,9 @@
 
             // Update agent filter
             const agents = [...new Set(allUsers.map(u => u.agentReference).filter(Boolean))];
+            const defaultTrades = ['Construction Visa', 'Driver Visa', 'House Driver Visa', 'Worker Visa', 'Business Visa'];
             const tradePool = [
+                ...defaultTrades,
                 ...(DB.get('trades', []) || []),
                 ...allUsers.map(u => u.trade).filter(Boolean)
             ];

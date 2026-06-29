@@ -3211,7 +3211,9 @@
         function adminLoadUsers() {
             allUsers = DB.getUsers();
             const agents = [...new Set(allUsers.map(u => u.agentReference).filter(Boolean))];
+            const defaultTrades = ['Construction Visa', 'Driver Visa', 'House Driver Visa', 'Worker Visa', 'Business Visa'];
             const tradePool = [
+                ...defaultTrades,
                 ...(DB.get('trades', []) || []),
                 ...allUsers.map(u => u.trade).filter(Boolean)
             ];
@@ -4439,7 +4441,7 @@
             adminApp.classList.remove('hidden');
             adminNavigateTo('dashboard');
             BackendBridge.hydrateAdminCache().then(ok => {
-                if (ok) adminNavigateTo(currentPage || 'dashboard');
+                if (ok) adminNavigateTo('dashboard');
             });
         } else if (sessionStorage.getItem('visa_user_logged') === 'true') {
             userLoginScreen.classList.add('hidden');
