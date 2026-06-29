@@ -2124,6 +2124,29 @@
             return containsUrduText(text) ? 'urdu-text' : '';
         }
 
+        function enforceQuestionFontLock() {
+            try {
+                const questionEl = document.getElementById('qText');
+                if (questionEl) questionEl.classList.add('question-nastaleeq');
+
+                document.querySelectorAll('#optionsContainer .break-words').forEach(el => {
+                    el.classList.add('question-nastaleeq');
+                });
+
+                document.querySelectorAll('#questionsList .font-medium, #questionsList .text-slate-600, #testResults .text-sm').forEach(el => {
+                    if (containsUrduText(el.textContent || '')) {
+                        el.classList.add('question-nastaleeq');
+                    }
+                });
+            } catch {}
+        }
+
+        function initQuestionFontLock() {
+            enforceQuestionFontLock();
+            const observer = new MutationObserver(() => enforceQuestionFontLock());
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+
         const DEFAULT_ADMIN_PERMISSIONS = {
             canManageUsers: true,
             canManageQuestions: true,
@@ -4577,7 +4600,11 @@
 
         // Set default role switcher state
         document.querySelector('.role-switcher button[data-role="user"]').classList.add('active');
+
+        // Permanent lock: keep Nastaleeq font on question text/options even after future UI updates.
+        initQuestionFontLock();
     </script>
 
 </body>
 </html>
+

@@ -2058,6 +2058,22 @@
             return containsUrduText(text) ? 'urdu-text' : '';
         }
 
+        function enforceAdminQuestionFontLock() {
+            try {
+                document.querySelectorAll('#questionsList .font-medium, #questionsList .text-slate-600').forEach(el => {
+                    if (containsUrduText(el.textContent || '')) {
+                        el.classList.add('question-nastaleeq');
+                    }
+                });
+            } catch {}
+        }
+
+        function initAdminQuestionFontLock() {
+            enforceAdminQuestionFontLock();
+            const observer = new MutationObserver(() => enforceAdminQuestionFontLock());
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+
         function normalizeQuestionText(value) {
             return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
         }
@@ -4306,6 +4322,9 @@
         document.getElementById('logoutBtn').addEventListener('click', () => {
             // handled above
         });
+
+        // Permanent lock: keep Nastaleeq font on Urdu question text/options in admin question lists.
+        initAdminQuestionFontLock();
     </script>
 
 </body>
