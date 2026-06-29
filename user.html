@@ -1532,6 +1532,9 @@
                         <button id="downloadMyFullBtn" class="bg-[#0b2a4a] text-white px-4 py-2.5 rounded-xl hover:bg-[#1a3d5f] transition-all text-sm font-medium flex items-center gap-2 shadow-sm">
                             <i class="fas fa-file-pdf"></i> Full HD
                         </button>
+                        <button id="downloadMyBothBtn" class="bg-emerald-600 text-white px-4 py-2.5 rounded-xl hover:bg-emerald-700 transition-all text-sm font-medium flex items-center gap-2 shadow-sm">
+                            <i class="fas fa-file-pdf"></i> Both HD
+                        </button>
                     </div>
                 </div>
 
@@ -3613,6 +3616,9 @@
                             <button onclick="exportUserPDF('${u.id}', 'full')" class="bg-[#0b2a4a] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#1a3d5f] transition-all flex items-center gap-2">
                                 <i class="fas fa-file-pdf"></i> Full PDF
                             </button>
+                            <button onclick="exportBothUserReports('${u.id}')" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-emerald-700 transition-all flex items-center gap-2">
+                                <i class="fas fa-file-pdf"></i> Both PDFs
+                            </button>
                             <button onclick="closeModal('userProfileModal')" class="bg-slate-200 text-slate-700 px-6 py-2 rounded-lg text-sm hover:bg-slate-300 transition-all">Close</button>
                         </div>
                     </div>
@@ -3838,12 +3844,30 @@
             exportUserPDF(userId, reportMode, 'hd');
         }
 
+        async function exportBothUserReports(userId, qualityProfile = 'standard') {
+            await exportUserPDF(userId, 'overview', qualityProfile);
+            await exportUserPDF(userId, 'full', qualityProfile);
+        }
+
+        async function downloadMyBothPerformanceReports() {
+            const userId = sessionStorage.getItem('visa_user_id');
+            if (!userId) {
+                showToast('Candidate session not found.', 'error');
+                return;
+            }
+            await exportBothUserReports(userId, 'hd');
+        }
+
         document.getElementById('downloadMyOverviewBtn').addEventListener('click', () => {
             downloadMyPerformanceReport('overview');
         });
 
         document.getElementById('downloadMyFullBtn').addEventListener('click', () => {
             downloadMyPerformanceReport('full');
+        });
+
+        document.getElementById('downloadMyBothBtn').addEventListener('click', () => {
+            downloadMyBothPerformanceReports();
         });
 
         // ============================================================
