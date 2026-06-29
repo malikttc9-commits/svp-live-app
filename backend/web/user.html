@@ -22,6 +22,8 @@
     </script>
 
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
+
         /* ===== CUSTOM STYLES ===== */
         * {
             margin: 0;
@@ -47,6 +49,11 @@
         .urdu-text,
         .urdu-text * {
             font-family: 'Jameel Noorie Nastaleeq', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif !important;
+        }
+        .question-nastaleeq,
+        .question-nastaleeq * {
+            font-family: 'Jameel Noorie Nastaleeq', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif !important;
+            line-height: 1.95;
         }
         .report-nastaleeq {
             font-family: 'Jameel Noorie Nastaleeq', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif;
@@ -2824,7 +2831,7 @@
 
             document.getElementById('qNumber').textContent = `Question ${userCurrentQ + 1}/${userTestQuestions.length}`;
             document.getElementById('qText').textContent = q.text;
-            document.getElementById('qText').className = `text-lg font-medium text-[#0b2a4a] mb-4 ${urduTextClass(q.text)}`;
+            document.getElementById('qText').className = `text-lg font-medium text-[#0b2a4a] mb-4 question-nastaleeq ${urduTextClass(q.text)}`;
 
             const questionImageWrap = document.getElementById('questionImageWrap');
             if (questionImageWrap) {
@@ -2853,7 +2860,7 @@
                     <div class="flex items-start gap-3 w-full">
                         <span class="letter">${letters[i]}</span>
                         <div class="flex-1 text-left">
-                            <div class="break-words ${urduTextClass(opt)}">${opt}</div>
+                            <div class="break-words question-nastaleeq ${urduTextClass(opt)}">${opt}</div>
                             <img src="${getOptionVisualImage(q, i)}" alt="Option image" class="mt-2 h-14 w-auto rounded-lg border border-slate-200 object-cover" />
                         </div>
                     </div>`;
@@ -3105,17 +3112,17 @@
                 div.className =
                     `p-3 rounded-xl border ${isCorrect ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50'}`;
                 div.innerHTML = `
-                        <p class="text-sm font-medium text-[#0b2a4a] ${urduTextClass(q.text)}">${i+1}. ${q.text}</p>
+                        <p class="text-sm font-medium text-[#0b2a4a] question-nastaleeq ${urduTextClass(q.text)}">${i+1}. ${q.text}</p>
                         <img src="${getQuestionVisualImage(q)}" alt="Question image" class="mt-2 h-20 w-auto rounded-lg border border-slate-200 object-cover" />
                         <div class="text-sm mt-2">
-                            <span>Your answer: <strong class="${isCorrect ? 'text-emerald-600' : 'text-red-600'} ${urduTextClass(userAns !== null ? q.options[userAns] : 'Not answered')}">${userAns !== null ? q.options[userAns] : 'Not answered'}</strong></span>
+                            <span>Your answer: <strong class="${isCorrect ? 'text-emerald-600' : 'text-red-600'} question-nastaleeq ${urduTextClass(userAns !== null ? q.options[userAns] : 'Not answered')}">${userAns !== null ? q.options[userAns] : 'Not answered'}</strong></span>
                             ${!isCorrect ? ` <span class="ml-3">Correct: <strong class="text-emerald-600">${q.options[correctAns]}</strong></span>` : ''}
                             <span class="ml-3">${isCorrect ? '✅' : '❌'}</span>
                         </div>
                         <div class="mt-2 grid sm:grid-cols-2 gap-2">${q.options.map((opt, idx) => `
                             <div class="rounded-lg border border-slate-200 p-2">
                                 <div class="text-xs text-slate-500">${String.fromCharCode(65 + idx)}</div>
-                                <div class="text-sm mt-1 ${urduTextClass(opt)}">${opt}</div>
+                                <div class="text-sm mt-1 question-nastaleeq ${urduTextClass(opt)}">${opt}</div>
                                 <img src="${getOptionVisualImage(q, idx)}" alt="Option image" class="mt-2 h-16 w-full rounded-md object-cover" />
                             </div>`).join('')}</div>
                     `;
@@ -3925,14 +3932,14 @@
                                         <span class="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">Q${idx + 1}</span>
                                         <span class="text-xs text-slate-500">${q.trade || ''}</span>
                                     </div>
-                                    <p class="font-medium text-[#0b2a4a] mb-3 ${urduTextClass(q.text)}">${q.text || '—'}</p>
+                                    <p class="font-medium text-[#0b2a4a] mb-3 question-nastaleeq ${urduTextClass(q.text)}">${q.text || '—'}</p>
                                     ${questionImage}
                                     <div class="grid sm:grid-cols-2 gap-2 text-sm">
                                         ${options.map((opt, i) => `
                                             <div class="flex items-start gap-2 ${i === correct ? 'option-correct pl-3' : 'pl-3'}">
                                                 <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === correct ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600'}">${String.fromCharCode(65 + i)}</span>
                                                 <div class="flex-1">
-                                                    <div class="${i === correct ? 'text-emerald-700 font-medium' : 'text-slate-600'} ${urduTextClass(opt)}">${opt}</div>
+                                                    <div class="${i === correct ? 'text-emerald-700 font-medium' : 'text-slate-600'} question-nastaleeq ${urduTextClass(opt)}">${opt}</div>
                                                     ${optionImages[i] ? `<img src="${optionImages[i]}" alt="Option image" class="mt-2 h-16 max-w-full rounded-lg border border-slate-200 object-cover" />` : ''}
                                                 </div>
                                                 ${i === correct ? '<i class="fas fa-check-circle text-emerald-500 ml-1"></i>' : ''}
