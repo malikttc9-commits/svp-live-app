@@ -827,6 +827,10 @@
                     <select id="agentFilterSelect" class="form-input py-1.5 px-3 w-auto min-w-[160px] text-sm border-slate-200 rounded-lg" onchange="applyUserFilter()">
                         <option value="">All Agents</option>
                     </select>
+                    <span class="text-sm font-medium text-slate-600">Trade:</span>
+                    <select id="userTradeFilter" class="form-input py-1.5 px-3 w-auto min-w-[160px] text-sm border-slate-200 rounded-lg" onchange="applyUserFilter()">
+                        <option value="">All Trades</option>
+                    </select>
                     <span class="text-sm font-medium text-slate-600">Status:</span>
                     <select id="userStatusFilter" class="form-input py-1.5 px-3 w-auto min-w-[160px] text-sm border-slate-200 rounded-lg" onchange="applyUserFilter()">
                         <option value="all">All Statuses</option>
@@ -837,7 +841,7 @@
                     </select>
                     <button onclick="applyUserFilter()" class="bg-[#0b2a4a] text-white px-4 py-1.5 rounded-lg text-sm hover:bg-[#1a3d5f] transition-all">Filter</button>
                     <button onclick="clearUserFilters()" class="text-sm text-slate-500 hover:text-slate-700 px-2">Clear</button>
-                    <span class="text-sm text-slate-400 ml-auto" id="userCountLabel">0 users</span>
+                    <span class="text-sm text-slate-400 ml-auto" id="userCountLabel">0 candidates</span>
                 </div>
 
                 <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
@@ -2550,13 +2554,21 @@
 
             // Update agent filter
             const agents = [...new Set(allUsers.map(u => u.agentReference).filter(Boolean))];
+            const trades = [...new Set(allUsers.map(u => u.trade).filter(Boolean))];
             const filterSelect = document.getElementById('agentFilterSelect');
+            const tradeSelect = document.getElementById('userTradeFilter');
             const currentVal = filterSelect.value;
+            const currentTradeVal = tradeSelect ? tradeSelect.value : '';
             const searchInput = document.getElementById('userSearchFilter');
             const statusSelect = document.getElementById('userStatusFilter');
             filterSelect.innerHTML = '<option value="">All Agents</option>' +
                 agents.map(a => `<option value="${a}">${a}</option>`).join('');
+            if (tradeSelect) {
+                tradeSelect.innerHTML = '<option value="">All Trades</option>' +
+                    trades.map(t => `<option value="${t}">${t}</option>`).join('');
+            }
             if (currentVal) filterSelect.value = currentVal;
+            if (tradeSelect && currentTradeVal) tradeSelect.value = currentTradeVal;
             if (searchInput && searchInput.value === undefined) searchInput.value = '';
             if (statusSelect && !statusSelect.value) statusSelect.value = 'all';
 
@@ -2565,6 +2577,7 @@
 
         function getFilteredUsers() {
             const agent = (document.getElementById('agentFilterSelect')?.value || '').trim();
+            const trade = (document.getElementById('userTradeFilter')?.value || '').trim();
             const status = document.getElementById('userStatusFilter')?.value || 'all';
             const search = (document.getElementById('userSearchFilter')?.value || '').trim().toLowerCase();
             const now = new Date();
@@ -2582,6 +2595,7 @@
                     .toLowerCase();
 
                 if (agent && (u.agentReference || '') !== agent) return false;
+                if (trade && (u.trade || '') !== trade) return false;
                 if (status === 'passed' && !u.passed) return false;
                 if (status === 'expired' && !isExpired) return false;
                 if (status === 'active' && !isActive) return false;
@@ -2593,7 +2607,7 @@
 
         function renderUsers(users) {
             const tbody = document.getElementById('usersTableBody');
-            document.getElementById('userCountLabel').textContent = users.length + ' users';
+            document.getElementById('userCountLabel').textContent = users.length + ' candidates';
 
             if (users.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-400">No candidates found</td></tr>';
@@ -2642,6 +2656,8 @@
 
         function clearUserFilters() {
             document.getElementById('agentFilterSelect').value = '';
+            const tradeSelect = document.getElementById('userTradeFilter');
+            if (tradeSelect) tradeSelect.value = '';
             document.getElementById('userSearchFilter').value = '';
             document.getElementById('userStatusFilter').value = 'all';
             renderUsers(allUsers);
