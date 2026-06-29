@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import { readDb, updateDb, getDefaultPermissions } from '../dataStore.js';
+import { readDb, writeDb, updateDb, getDefaultPermissions } from '../dataStore.js';
 import { requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
@@ -9,6 +9,71 @@ function isMainOrSuper(auth) {
   const role = auth?.role || '';
   return role === 'main' || role === 'super';
 }
+
+function isMainOnly(auth) {
+  return (auth?.role || '') === 'main';
+}
+
+function normalizeImportedDb(rawDb) {
+  if (!rawDb || typeof rawDb !== 'object' || Array.isArray(rawDb)) {
+    throw new Error('Invalid database payload');
+  }
+
+  const nextDb = structuredClone(rawDb);
+  nextDb.admins = Array.isArray(nextDb.admins) ? nextDb.admins : [];
+  nextDb.users = Array.isArray(nextDb.users) ? nextDb.users : [];
+  nextDb.questions = Array.isArray(nextDb.questions) ? nextDb.questions : [];
+  nextDb.trades = Array.isArray(nextDb.trades) ? nextDb.trades : [];
+  nextDb.settings = (nextDb.settings && typeof nextDb.settings === 'object' && !Array.isArray(nextDb.settings))
+    ? nextDb.settings
+    : {
+      questionsPerAttempt: 30,
+      maxAttempts: 15,
+      validityDays: 10,
+      passingScore: 80,
+    };
+
+  const userCount = Number(nextDb?.counters?.userCount);
+  nextDb.counters = {
+    ...(nextDb.counters && typeof nextDb.counters === 'object' ? nextDb.counters : {}),
+    userCount: Number.isFinite(userCount) && userCount >= 0 ? Math.floor(userCount) : nextDb.users.length,
+  };
+
+  return nextDb;
+}
+
+router.get('/db/export', requireAdmin, async (req, res) => {
+  if (!isMainOnly(req.auth)) return res.status(403).json({ message: 'Only main admin can export database' });
+
+  const db = await readDb();
+  res.json({
+    exportedAt: new Date().toISOString(),
+    data: db,
+  });
+});
+
+router.post('/db/import', requireAdmin, async (req, res) => {
+  if (!isMainOnly(req.auth)) return res.status(403).json({ message: 'Only main admin can import database' });
+
+  try {
+    const source = req.body?.data ?? req.body;
+    const normalized = normalizeImportedDb(source);
+    await writeDb(normalized);
+    const hydrated = await readDb();
+    return res.json({
+      message: 'Database imported successfully',
+      summary: {
+        admins: (hydrated.admins || []).length,
+        users: (hydrated.users || []).length,
+        questions: (hydrated.questions || []).length,
+        trades: (hydrated.trades || []).length,
+      },
+      importedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    return res.status(400).json({ message: error?.message || 'Invalid import payload' });
+  }
+});
 
 router.get('/', requireAdmin, async (req, res) => {
   if (!isMainOrSuper(req.auth)) return res.status(403).json({ message: 'Only main/super admin can view admins' });

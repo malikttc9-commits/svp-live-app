@@ -680,6 +680,7 @@
 
     <!-- ===== TOAST ===== -->
     <div class="toast" id="toast"></div>
+    <input type="file" id="dbImportInput" accept=".json,application/json" class="hidden" />
 
     <!-- ============================================================ -->
     <!-- LOGIN SCREEN -->
@@ -2291,6 +2292,11 @@
             return role === 'super' || role === 'main';
         }
 
+        function isMainAdmin() {
+            if (!currentAdmin) return false;
+            return (currentAdmin.role || '') === 'main';
+        }
+
         function canDeleteUser() {
             return isSuperAdmin();
         }
@@ -2588,6 +2594,18 @@
                         </button>
                     `;
             }
+
+            if (isMainAdmin()) {
+                actionsHtml += `
+                        <button onclick="exportDatabaseSnapshot()" class="btn-quick bg-emerald-600 text-white px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition-all text-sm font-medium flex items-center gap-2">
+                            <i class="fas fa-database"></i> Export Database
+                        </button>
+                        <button onclick="openDatabaseImportPicker()" class="btn-quick bg-rose-600 text-white px-5 py-2.5 rounded-xl hover:bg-rose-700 transition-all text-sm font-medium flex items-center gap-2">
+                            <i class="fas fa-file-import"></i> Import Database
+                        </button>
+                    `;
+            }
+
             actionsHtml += `
                     <button onclick="navigateTo('reports')" class="btn-quick bg-white text-[#0b2a4a] border border-slate-200 px-5 py-2.5 rounded-xl hover:bg-slate-50 transition-all text-sm font-medium flex items-center gap-2">
                         <i class="fas fa-file-alt"></i> Reports
@@ -3237,6 +3255,97 @@
             showToast('Questions exported successfully.', 'success');
         }
 
+        async function exportDatabaseSnapshot() {
+            if (!isMainAdmin()) {
+                showToast('Only main admin can export database.', 'error');
+                return;
+            }
+
+            const token = getAdminToken();
+            if (!token) {
+                showToast('Session expired. Please login again.', 'error');
+                return;
+            }
+
+            try {
+                const payload = await apiRequest('/admins/db/export', {}, token);
+                const snapshot = payload?.data ?? payload;
+                const exportedAt = payload?.exportedAt || new Date().toISOString();
+                const stamp = exportedAt.replace(/[:.]/g, '-');
+
+                const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `svp-db-export-${stamp}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showToast('Database exported successfully.', 'success');
+            } catch (err) {
+                showToast('Failed to export database: ' + (err.message || 'Unknown error'), 'error');
+            }
+        }
+
+        function openDatabaseImportPicker() {
+            if (!isMainAdmin()) {
+                showToast('Only main admin can import database.', 'error');
+                return;
+            }
+            const input = document.getElementById('dbImportInput');
+            if (!input) return;
+            input.value = '';
+            input.click();
+        }
+
+        async function importDatabaseFromFile(event) {
+            const file = event?.target?.files?.[0];
+            if (!file) return;
+
+            if (!isMainAdmin()) {
+                showToast('Only main admin can import database.', 'error');
+                return;
+            }
+
+            if (!file.name.toLowerCase().endsWith('.json')) {
+                showToast('Please select a .json file for database import.', 'error');
+                return;
+            }
+
+            const token = getAdminToken();
+            if (!token) {
+                showToast('Session expired. Please login again.', 'error');
+                return;
+            }
+
+            const ok = confirm('Database import will replace current data. Do you want to continue?');
+            if (!ok) return;
+
+            try {
+                const raw = await file.text();
+                const parsed = JSON.parse(raw);
+
+                const result = await apiRequest('/admins/db/import', {
+                    method: 'POST',
+                    body: JSON.stringify({ data: parsed })
+                }, token);
+
+                const synced = await BackendBridge.hydrateAdminCache();
+                if (!synced) {
+                    showToast('Imported, but refresh sync was partial. Reload page if needed.', 'info');
+                }
+                populateTradeSelects();
+                navigateTo('dashboard');
+
+                const summary = result?.summary || {};
+                showToast(`Database imported. Users: ${summary.users || 0}, Questions: ${summary.questions || 0}`, 'success');
+            } catch (err) {
+                showToast('Failed to import database: ' + (err.message || 'Invalid JSON file'), 'error');
+            }
+        }
+
         // ============================================================
         // IMPORT QUESTIONS FROM FILE
         // ============================================================
@@ -3256,6 +3365,7 @@
 
         const dropZone = document.getElementById('fileDropZone');
         const fileInput = document.getElementById('fileInput');
+        const dbImportInput = document.getElementById('dbImportInput');
 
         dropZone.addEventListener('click', () => fileInput.click());
 
@@ -3279,6 +3389,10 @@
                 handleFile(e.target.files[0]);
             }
         });
+
+        if (dbImportInput) {
+            dbImportInput.addEventListener('change', importDatabaseFromFile);
+        }
 
         function handleFile(file) {
             if (!file.name.toLowerCase().endsWith('.txt')) {

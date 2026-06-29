@@ -18,6 +18,35 @@ This project is configured to run full system (frontend + backend) on a single N
 6. After deploy, open your stable URL, for example:
    - `https://svp-live-app.onrender.com/`
 
+## Permanent No-Issue Setup (Git + Render Attached)
+Use these once to avoid repeat deployment issues.
+
+1. Make sure local Git is installed and available in terminal:
+  - `git --version`
+2. Connect local project to GitHub remote (one-time):
+  - `git remote add origin <YOUR_GITHUB_REPO_URL>`
+  - `git branch -M main`
+  - `git push -u origin main`
+3. In Render service settings:
+  - Keep `Auto-Deploy` set to `On`.
+  - Keep branch set to `main` (or your default branch).
+4. Add Render Deploy Hook fallback (recommended):
+  - Render Dashboard -> Service -> Settings -> Deploy Hook -> Create Hook.
+  - Copy hook URL.
+5. Add GitHub secret so deploy can always be triggered from workflow:
+  - GitHub Repo -> Settings -> Secrets and variables -> Actions.
+  - Create secret: `RENDER_DEPLOY_HOOK_URL` = your Render hook URL.
+6. Workflow already added in this repo:
+  - `.github/workflows/render-redeploy.yml`
+  - It runs on push to `main/master` and triggers Render deploy hook.
+
+### Daily Update Flow
+1. `git add .`
+2. `git commit -m "your update message"`
+3. `git push`
+
+Render deployment will trigger automatically.
+
 ## Required Environment Variables
 Already defined in `render.yaml`:
 - `NODE_ENV=production`
