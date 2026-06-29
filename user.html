@@ -1045,7 +1045,7 @@
                     <i class="fas fa-th-large w-5 text-center"></i> Dashboard
                 </div>
                 <div class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100/80" data-page="users">
-                    <i class="fas fa-users w-5 text-center"></i> Users
+                    <i class="fas fa-users w-5 text-center"></i> Candidates
                 </div>
                 <div class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-blue-100/80" data-page="questions">
                     <i class="fas fa-question-circle w-5 text-center"></i> Questions
@@ -1088,7 +1088,7 @@
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     <div class="stat-card card-hover">
                         <div class="flex items-center justify-between">
-                            <span class="text-sm font-medium text-slate-500">Total Users</span>
+                            <span class="text-sm font-medium text-slate-500">Total Candidates</span>
                             <i class="fas fa-users text-blue-400 text-xl"></i>
                         </div>
                         <p class="text-3xl font-extrabold text-[#0b2a4a] mt-2" id="statTotalUsers">0</p>
@@ -1150,7 +1150,7 @@
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                     <div>
                         <h3 class="text-xl font-bold text-[#0b2a4a]">Candidate Management</h3>
-                        <p class="text-sm text-slate-500">Create, view and manage all registered users</p>
+                        <p class="text-sm text-slate-500">Create, view and manage all registered candidates</p>
                     </div>
                     <button onclick="showCreateUser()" data-perm="canManageUsers" class="bg-[#0b2a4a] text-white px-6 py-2.5 rounded-xl hover:bg-[#1a3d5f] transition-all text-sm font-medium flex items-center gap-2 shadow-sm">
                         <i class="fas fa-plus"></i> New Candidate
@@ -1158,38 +1158,42 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-3 mb-4 bg-white p-3 rounded-xl border border-slate-200">
                     <i class="fas fa-filter text-slate-400"></i>
+                    <span class="text-sm font-medium text-slate-600">Search:</span>
+                    <input id="userSearchFilter" type="text" class="form-input py-1.5 px-3 w-auto min-w-[220px] text-sm border-slate-200 rounded-lg" placeholder="Search by candidate, agent, ID, trade, or mobile" oninput="applyUserFilter()" />
                     <span class="text-sm font-medium text-slate-600">Agent:</span>
-                    <select id="agentFilterSelect" class="form-input py-1.5 px-3 w-auto min-w-[140px] text-sm border-slate-200 rounded-lg">
+                    <select id="agentFilterSelect" class="form-input py-1.5 px-3 w-auto min-w-[160px] text-sm border-slate-200 rounded-lg" onchange="applyUserFilter()">
                         <option value="">All Agents</option>
                     </select>
-                    <button onclick="applyAgentFilter()" class="bg-[#0b2a4a] text-white px-4 py-1.5 rounded-lg text-sm hover:bg-[#1a3d5f] transition-all">Filter</button>
-                    <button onclick="clearAgentFilter()" class="text-sm text-slate-500 hover:text-slate-700 px-2">Clear</button>
-                    <span class="text-sm text-slate-400 ml-auto" id="userCountLabel">0 users</span>
+                    <span class="text-sm font-medium text-slate-600">Trade:</span>
+                    <select id="userTradeFilter" class="form-input py-1.5 px-3 w-auto min-w-[160px] text-sm border-slate-200 rounded-lg" onchange="applyUserFilter()">
+                        <option value="">All Trades</option>
+                    </select>
+                    <span class="text-sm font-medium text-slate-600">Status:</span>
+                    <select id="userStatusFilter" class="form-input py-1.5 px-3 w-auto min-w-[160px] text-sm border-slate-200 rounded-lg" onchange="applyUserFilter()">
+                        <option value="all">All Statuses</option>
+                        <option value="passed">Passed</option>
+                        <option value="expired">Expired</option>
+                        <option value="active">Active</option>
+                        <option value="goodAverage">Good Average (80%+)</option>
+                    </select>
+                    <button onclick="applyUserFilter()" class="bg-[#0b2a4a] text-white px-4 py-1.5 rounded-lg text-sm hover:bg-[#1a3d5f] transition-all">Filter</button>
+                    <button onclick="clearUserFilters()" class="text-sm text-slate-500 hover:text-slate-700 px-2">Clear</button>
+                    <span class="text-sm text-slate-400 ml-auto" id="userCountLabel">0 candidates</span>
                 </div>
                 <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                     <div class="table-wrap">
                         <table class="w-full text-sm">
                             <thead class="bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th class="text-left py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider">User</th>
+                                    <th class="text-left py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider">Candidate</th>
                                     <th class="text-left py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden sm:table-cell">ID</th>
                                     <th class="text-left py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">Trade</th>
-                                    <span class="text-sm font-medium text-slate-600">Search:</span>
-                                    <input id="userSearchFilter" type="text" class="form-input py-1.5 px-3 w-auto min-w-[220px] text-sm border-slate-200 rounded-lg" placeholder="Search by candidate, agent, ID, trade, or mobile" oninput="applyUserFilter()" />
                                     <th class="text-left py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden lg:table-cell">Mobile</th>
-                                    <select id="agentFilterSelect" class="form-input py-1.5 px-3 w-auto min-w-[160px] text-sm border-slate-200 rounded-lg" onchange="applyUserFilter()">
+                                    <th class="text-left py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">Agent</th>
                                     <th class="text-left py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider">Status</th>
                                     <th class="text-left py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider">Action</th>
-                                    <span class="text-sm font-medium text-slate-600">Status:</span>
-                                    <select id="userStatusFilter" class="form-input py-1.5 px-3 w-auto min-w-[160px] text-sm border-slate-200 rounded-lg" onchange="applyUserFilter()">
-                                        <option value="all">All Statuses</option>
-                                        <option value="passed">Passed</option>
-                                        <option value="expired">Expired</option>
-                                        <option value="active">Active</option>
-                                        <option value="goodAverage">Good Average (80%+)</option>
-                                    </select>
-                                    <button onclick="applyUserFilter()" class="bg-[#0b2a4a] text-white px-4 py-1.5 rounded-lg text-sm hover:bg-[#1a3d5f] transition-all">Filter</button>
-                                    <button onclick="clearUserFilters()" class="text-sm text-slate-500 hover:text-slate-700 px-2">Clear</button>
+                                </tr>
+                            </thead>
                             <tbody id="usersTableBody">
                                 <tr><td colspan="7" class="py-8 text-center text-slate-400">No candidates found</td></tr>
                             </tbody>
@@ -1243,7 +1247,7 @@
                         <div class="grid sm:grid-cols-2 gap-5">
                             <div>
                                 <label class="form-label">Questions per Attempt <span class="required">*</span></label>
-                                <input type="
+                                <input type="number" id="settingQuestions" class="form-input" min="5" max="100" value="30" required />
                                 <p class="text-xs text-slate-400 mt-1">5–100 questions</p>
                             </div>
                             <div>
@@ -3207,13 +3211,21 @@
         function adminLoadUsers() {
             allUsers = DB.getUsers();
             const agents = [...new Set(allUsers.map(u => u.agentReference).filter(Boolean))];
+            const trades = [...new Set(allUsers.map(u => u.trade).filter(Boolean))];
             const filterSelect = document.getElementById('agentFilterSelect');
+            const tradeSelect = document.getElementById('userTradeFilter');
             const currentVal = filterSelect.value;
+            const currentTradeVal = tradeSelect ? tradeSelect.value : '';
             const searchInput = document.getElementById('userSearchFilter');
             const statusSelect = document.getElementById('userStatusFilter');
             filterSelect.innerHTML = '<option value="">All Agents</option>' +
                 agents.map(a => `<option value="${a}">${a}</option>`).join('');
+            if (tradeSelect) {
+                tradeSelect.innerHTML = '<option value="">All Trades</option>' +
+                    trades.map(t => `<option value="${t}">${t}</option>`).join('');
+            }
             if (currentVal) filterSelect.value = currentVal;
+            if (tradeSelect && currentTradeVal) tradeSelect.value = currentTradeVal;
             if (searchInput && searchInput.value === undefined) searchInput.value = '';
             if (statusSelect && !statusSelect.value) statusSelect.value = 'all';
             renderUsers(getFilteredUsers());
@@ -3221,6 +3233,7 @@
 
         function getFilteredUsers() {
             const agent = (document.getElementById('agentFilterSelect')?.value || '').trim();
+            const trade = (document.getElementById('userTradeFilter')?.value || '').trim();
             const status = document.getElementById('userStatusFilter')?.value || 'all';
             const search = (document.getElementById('userSearchFilter')?.value || '').trim().toLowerCase();
             const now = new Date();
@@ -3238,6 +3251,7 @@
                     .toLowerCase();
 
                 if (agent && (u.agentReference || '') !== agent) return false;
+                if (trade && (u.trade || '') !== trade) return false;
                 if (status === 'passed' && !u.passed) return false;
                 if (status === 'expired' && !isExpired) return false;
                 if (status === 'active' && !isActive) return false;
@@ -3249,7 +3263,7 @@
 
         function renderUsers(users) {
             const tbody = document.getElementById('usersTableBody');
-            document.getElementById('userCountLabel').textContent = users.length + ' users';
+            document.getElementById('userCountLabel').textContent = users.length + ' candidates';
 
             if (users.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-400">No candidates found</td></tr>';
@@ -3289,6 +3303,8 @@
 
         function clearUserFilters() {
             document.getElementById('agentFilterSelect').value = '';
+            const tradeSelect = document.getElementById('userTradeFilter');
+            if (tradeSelect) tradeSelect.value = '';
             document.getElementById('userSearchFilter').value = '';
             document.getElementById('userStatusFilter').value = 'all';
             renderUsers(allUsers);
