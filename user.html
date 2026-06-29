@@ -44,6 +44,9 @@
             unicode-bidi: plaintext;
             line-height: 2;
         }
+        .report-nastaleeq {
+            font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif;
+        }
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -473,6 +476,46 @@
                 padding: 12px;
                 border-radius: 14px;
             }
+            .main-content > header {
+                gap: 8px;
+                align-items: flex-start;
+            }
+            .main-content > header > div:last-child {
+                margin-left: auto;
+            }
+        }
+        @media (max-width: 640px) {
+            #admin-page-users,
+            #admin-page-questions,
+            #admin-page-reports {
+                overflow: hidden;
+            }
+            #userSearchFilter,
+            #agentFilterSelect,
+            #userTradeFilter,
+            #userStatusFilter,
+            #reportTradeFilter,
+            #reportSearchFilter,
+            #reportAgentFilter,
+            #reportStatusFilter {
+                width: 100% !important;
+                min-width: 0 !important;
+                flex: 1 1 100%;
+            }
+            #userCountLabel,
+            #reportCountLabel {
+                width: 100%;
+                margin-left: 0 !important;
+                text-align: left;
+            }
+            .table-wrap table {
+                min-width: 580px;
+            }
+            .login-card {
+                padding: 24px 18px;
+                border-radius: 20px;
+                margin: 10px;
+            }
         }
         .form-select {
             appearance: none;
@@ -791,6 +834,9 @@
             }
             #userApp > header h1 {
                 font-size: 15px;
+            }
+            #userApp .candidate-header {
+                gap: 8px;
             }
             #userDashboard > .candidate-hero-card,
             #userTestSection {
@@ -1361,7 +1407,7 @@
                     </select>
                     <span class="text-sm text-slate-400 ml-auto" id="reportCountLabel">0 users</span>
                 </div>
-                <div id="reportContainer" class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                <div id="reportContainer" class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm report-nastaleeq">
                     <div class="table-wrap">
                         <table class="w-full text-sm">
                             <thead class="bg-slate-50 border-b border-slate-200">
@@ -3631,7 +3677,7 @@
                 : 1;
 
             const summaryPage = `
-                <div style="width:${pageWidth}px;height:${pageHeight}px;padding:12px;font-family:Inter,Arial,sans-serif;background:#f8fbff;box-sizing:border-box;overflow:hidden;">
+                <div style="width:${pageWidth}px;height:${pageHeight}px;padding:12px;font-family:'Jameel Noori Nastaleeq','Noto Nastaliq Urdu','Noto Naskh Arabic','Segoe UI',Tahoma,Arial,sans-serif;background:#f8fbff;box-sizing:border-box;overflow:hidden;">
                     <div style="height:100%;display:flex;flex-direction:column;gap:8px;min-height:0;">
                         <div style="padding:10px 12px;border-radius:10px;background:linear-gradient(135deg,#0b2a4a 0%,#2563eb 100%);color:white;box-shadow:0 5px 12px rgba(37,99,235,0.16);">
                             <div style="font-size:16px;font-weight:800;line-height:1.1;">${u.name || 'User'}</div>
@@ -3680,7 +3726,7 @@
 
             const pushAttemptPage = (content, pageNo) => {
                 pages.push(`
-                    <div style="width:${pageWidth}px;height:${pageHeight}px;padding:16px;font-family:Inter,Arial,sans-serif;background:#f8fbff;box-sizing:border-box;">
+                    <div style="width:${pageWidth}px;height:${pageHeight}px;padding:16px;font-family:'Jameel Noori Nastaleeq','Noto Nastaliq Urdu','Noto Naskh Arabic','Segoe UI',Tahoma,Arial,sans-serif;background:#f8fbff;box-sizing:border-box;">
                         <div style="padding:10px 12px;border-radius:10px;background:linear-gradient(135deg,#0b2a4a 0%,#2563eb 100%);color:white;font-size:13px;font-weight:800;">Attempt Review</div>
                         ${content}
                         <div style="margin-top:10px;text-align:center;font-size:9px;color:#94a3b8;">Page ${pageNo}</div>
@@ -4254,7 +4300,7 @@
             });
 
             const html = `
-                    <div style="padding:30px;font-family:Inter,sans-serif;max-width:900px;margin:auto;background:#fff;">
+                    <div style="padding:30px;font-family:'Jameel Noori Nastaleeq','Noto Nastaliq Urdu','Noto Naskh Arabic',serif;max-width:900px;margin:auto;background:#fff;">
                         <div style="text-align:center;border-bottom:2px solid #0b2a4a;padding-bottom:16px;margin-bottom:20px;">
                             <h1 style="font-size:24px;font-weight:bold;color:#0b2a4a;">Saudi Visa Test Prep</h1>
                             <p style="color:#64748b;font-size:14px;">Performance Report</p>

@@ -534,6 +534,56 @@
                 padding: 10px 12px;
                 margin-bottom: 12px;
             }
+            .main-content > header {
+                gap: 8px;
+                align-items: flex-start;
+            }
+            .main-content > header > div:last-child {
+                margin-left: auto;
+            }
+        }
+        @media (max-width: 640px) {
+            #page-users,
+            #page-questions,
+            #page-reports {
+                overflow: hidden;
+            }
+            #userSearchFilter,
+            #agentFilterSelect,
+            #userTradeFilter,
+            #userStatusFilter,
+            #questionTradeFilter,
+            #questionSearchInput,
+            #newTradeInput,
+            #reportTradeFilter,
+            #reportSearchFilter,
+            #reportAgentFilter,
+            #reportStatusFilter {
+                width: 100% !important;
+                min-width: 0 !important;
+                flex: 1 1 100%;
+            }
+            #questionCountLabel,
+            #userCountLabel,
+            #reportCountLabel {
+                width: 100%;
+                margin-left: 0 !important;
+                text-align: left;
+            }
+            #page-questions .flex.flex-wrap.items-center.gap-2 > button {
+                flex: 1 1 calc(50% - 0.25rem);
+            }
+            #page-questions .flex.flex-wrap.items-center.gap-2 > button:nth-of-type(4) {
+                flex-basis: 100%;
+            }
+            .table-wrap table {
+                min-width: 580px;
+            }
+            .login-card {
+                padding: 24px 18px;
+                border-radius: 20px;
+                margin: 10px;
+            }
         }
         .form-select {
             appearance: none;
