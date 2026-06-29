@@ -949,14 +949,14 @@
                     <label class="form-label">Email <span class="required">*</span></label>
                     <div class="relative">
                         <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input type="email" id="adminLoginEmail" class="form-input pl-11" placeholder="admin@example.com" value="admin@admin.com" required />
+                        <input type="email" id="adminLoginEmail" class="form-input pl-11" placeholder="admin@example.com" required />
                     </div>
                 </div>
                 <div class="mb-6">
                     <label class="form-label">Password <span class="required">*</span></label>
                     <div class="relative">
                         <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input type="password" id="adminLoginPassword" class="form-input pl-11" placeholder="••••••••" value="admin123" required />
+                        <input type="password" id="adminLoginPassword" class="form-input pl-11" placeholder="••••••••" required />
                         <button type="button" id="adminTogglePwd" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                             <i class="fas fa-eye"></i>
                         </button>
@@ -969,8 +969,8 @@
             </form>
 
             <div class="text-center mt-6 text-xs text-slate-400">
-                <i class="fas fa-key mr-1 text-[#60b0f4]"></i>
-                Demo: admin@admin.com / admin123
+                <i class="fas fa-shield-alt mr-1 text-[#60b0f4]"></i>
+                Use your assigned admin credentials.
             </div>
         </div>
     </div>
@@ -1880,21 +1880,8 @@
             },
             setSettings(settings) { this.set('settings', settings); BackendBridge.syncSettings(settings); },
             getAdmins() {
-                const defaults = [{
-                    id: 'main-admin',
-                    name: 'Main Admin',
-                    email: 'admin@admin.com',
-                    password: 'admin123',
-                    role: 'main',
-                    active: true,
-                    permissions: normalizePermissions()
-                }];
-                const admins = this.get('admins', defaults);
-                const list = Array.isArray(admins) ? admins : defaults;
-                const exists = list.some(a => a.email === 'admin@admin.com');
-                if (!exists) {
-                    list.unshift(defaults[0]);
-                }
+                const admins = this.get('admins', []);
+                const list = Array.isArray(admins) ? admins : [];
                 const normalized = list.map(a => ({ ...a, role: a.role || 'staff', active: a.active !== false, permissions: normalizePermissions(a.permissions) }));
                 this.set('admins', normalized);
                 return normalized;
@@ -2097,7 +2084,7 @@
         }
 
         function isMainAdmin() {
-            return currentAdmin?.role === 'main' || currentAdmin?.email === 'admin@admin.com';
+            return currentAdmin?.role === 'main';
         }
 
         function hasAdminPermission(key) {
@@ -2167,8 +2154,6 @@
         // ============================================================
         // ADMIN LOGIN
         // ============================================================
-        const ADMIN_CREDENTIALS = { email: 'admin@admin.com', password: 'admin123' };
-
         document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('adminLoginEmail').value.trim();
@@ -2202,8 +2187,7 @@
                 showToast('Welcome ' + (admin.name || 'Admin') + '!', 'success');
                 adminNavigateTo('dashboard');
             } else {
-                document.getElementById('adminLoginErrorText').textContent =
-                    'Invalid credentials. Use admin@admin.com / admin123 for the main admin.';
+                document.getElementById('adminLoginErrorText').textContent = 'Invalid credentials.';
                 errorEl.classList.remove('hidden');
             }
         });
@@ -4420,7 +4404,7 @@
         // INIT
         // ============================================================
         console.log('🔥 Saudi Visa Test Prep System loaded.');
-        console.log('📌 Admin: admin@admin.com / admin123');
+        console.log('🔒 Admin credentials are secured.');
 
         // Check session states
         if (sessionStorage.getItem('visa_admin_logged') === 'true') {

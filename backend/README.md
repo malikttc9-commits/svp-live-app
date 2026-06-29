@@ -19,10 +19,6 @@ Node.js + Express backend for the Saudi Visa Prep system.
 4. API base URL:
    http://localhost:4000/api
 
-## Default Admin
-- Email: admin@admin.com
-- Password: admin123
-
 ## Main Endpoints
 - POST /api/auth/admin/login
 - POST /api/auth/candidate/login

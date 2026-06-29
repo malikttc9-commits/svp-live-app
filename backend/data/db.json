@@ -3,8 +3,8 @@
     {
       "id": "main-admin",
       "name": "Main Admin",
-      "email": "admin@admin.com",
-      "passwordHash": "$2a$10$g3yX6aAB4WvX180KwPK0we8EUhd7S4Gku5PN6mQ36c.VpqZw758zu",
+      "email": "mohsinmalik128@gmail.com",
+      "passwordHash": "$2a$10$rSS6DDitxSYbb4O4Nk1R.uoA.1ok9M.Sc9PxYFbjmtV/I8e/aQF7q",
       "role": "main",
       "active": true,
       "permissions": {

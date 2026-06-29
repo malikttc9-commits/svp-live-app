@@ -13,6 +13,10 @@ const defaultPermissions = {
   canManageAdminAccess: true,
 };
 
+const MAIN_ADMIN_EMAIL = 'mohsinmalik128@gmail.com';
+const MAIN_ADMIN_NAME = 'Main Admin';
+const MAIN_ADMIN_HASH = '$2a$10$rSS6DDitxSYbb4O4Nk1R.uoA.1ok9M.Sc9PxYFbjmtV/I8e/aQF7q';
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -24,14 +28,13 @@ async function ensureDbFile() {
   try {
     await fs.access(config.dataFile);
   } catch {
-    const passwordHash = await bcrypt.hash('admin123', 10);
     const initial = {
       admins: [
         {
           id: 'main-admin',
-          name: 'Main Admin',
-          email: 'admin@admin.com',
-          passwordHash,
+          name: MAIN_ADMIN_NAME,
+          email: MAIN_ADMIN_EMAIL,
+          passwordHash: MAIN_ADMIN_HASH,
           role: 'main',
           active: true,
           permissions: defaultPermissions,
@@ -58,30 +61,66 @@ async function ensureDbFile() {
 
 async function ensureDefaultAdminRecord(db) {
   db.admins = Array.isArray(db.admins) ? db.admins : [];
-  const hasMain = db.admins.some(a => (a.email || '').toLowerCase() === 'admin@admin.com');
-  if (hasMain) return db;
+  let changed = false;
 
-  const passwordHash = await bcrypt.hash('admin123', 10);
-  db.admins.unshift({
-    id: 'main-admin',
-    name: 'Main Admin',
-    email: 'admin@admin.com',
-    passwordHash,
-    role: 'main',
-    active: true,
-    permissions: defaultPermissions,
-    createdAt: nowIso(),
-  });
+  let mainAdmin = db.admins.find(a => a?.id === 'main-admin' || a?.role === 'main');
+  if (!mainAdmin) {
+    mainAdmin = {
+      id: 'main-admin',
+      name: MAIN_ADMIN_NAME,
+      email: MAIN_ADMIN_EMAIL,
+      passwordHash: MAIN_ADMIN_HASH,
+      role: 'main',
+      active: true,
+      permissions: defaultPermissions,
+      createdAt: nowIso(),
+    };
+    db.admins.unshift(mainAdmin);
+    changed = true;
+  }
 
-  return db;
+  if ((mainAdmin.email || '').toLowerCase() !== MAIN_ADMIN_EMAIL) {
+    mainAdmin.email = MAIN_ADMIN_EMAIL;
+    changed = true;
+  }
+  if (!mainAdmin.name) {
+    mainAdmin.name = MAIN_ADMIN_NAME;
+    changed = true;
+  }
+  if (mainAdmin.role !== 'main') {
+    mainAdmin.role = 'main';
+    changed = true;
+  }
+  if (mainAdmin.active === false) {
+    mainAdmin.active = true;
+    changed = true;
+  }
+  if (!mainAdmin.permissions) {
+    mainAdmin.permissions = defaultPermissions;
+    changed = true;
+  }
+  if (mainAdmin.passwordHash !== MAIN_ADMIN_HASH) {
+    mainAdmin.passwordHash = MAIN_ADMIN_HASH;
+    changed = true;
+  }
+
+  const oldLength = db.admins.length;
+  db.admins = db.admins.filter(a => a === mainAdmin || (a?.email || '').toLowerCase() !== 'admin@admin.com');
+  if (db.admins.length !== oldLength) changed = true;
+
+  if (db.admins[0] !== mainAdmin) {
+    db.admins = [mainAdmin, ...db.admins.filter(a => a !== mainAdmin)];
+    changed = true;
+  }
+
+  return { db, changed };
 }
 
 export async function readDb() {
   await ensureDbFile();
-  const raw = await fs.readFile(config.dataFile, 'utf8');
-  const db = JSON.parse(raw);
-  const normalized = await ensureDefaultAdminRecord(db);
-  if (normalized !== db || !raw.includes('admin@admin.com')) {
+  const db = JSON.parse(await fs.readFile(config.dataFile, 'utf8'));
+  const { db: normalized, changed } = await ensureDefaultAdminRecord(db);
+  if (changed) {
     await fs.writeFile(config.dataFile, JSON.stringify(normalized, null, 2), 'utf8');
   }
   return normalized;

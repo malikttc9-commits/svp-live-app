@@ -654,14 +654,14 @@
                     <label class="form-label">Email <span class="required">*</span></label>
                     <div class="relative">
                         <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input type="email" id="loginEmail" class="form-input pl-11" placeholder="admin@example.com" value="admin@admin.com" required />
+                        <input type="email" id="loginEmail" class="form-input pl-11" placeholder="admin@example.com" required />
                     </div>
                 </div>
                 <div class="mb-6">
                     <label class="form-label">Password <span class="required">*</span></label>
                     <div class="relative">
                         <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input type="password" id="loginPassword" class="form-input pl-11" placeholder="••••••••" value="admin123" required />
+                        <input type="password" id="loginPassword" class="form-input pl-11" placeholder="••••••••" required />
                         <button type="button" id="togglePwd" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                             <i class="fas fa-eye"></i>
                         </button>
@@ -674,8 +674,8 @@
             </form>
 
             <div class="text-center mt-6 text-xs text-slate-400">
-                <i class="fas fa-key mr-1 text-[#60b0f4]"></i>
-                Demo: admin@admin.com / admin123
+                <i class="fas fa-shield-alt mr-1 text-[#60b0f4]"></i>
+                Use your assigned admin credentials.
             </div>
         </div>
     </div>
@@ -2234,7 +2234,7 @@
         function isSuperAdmin() {
             if (!currentAdmin) return false;
             const role = currentAdmin.role || '';
-            return role === 'super' || role === 'main' || currentAdmin.email === 'admin@admin.com';
+            return role === 'super' || role === 'main';
         }
 
         function canDeleteUser() {
@@ -2363,17 +2363,8 @@
             let admins = DB.getAdmins();
             const normalized = admins.map(a => ({
                 ...a,
-                role: a.role || (a.email === 'admin@admin.com' ? 'super' : 'staff')
+                role: a.role || 'staff'
             }));
-            if (normalized.length === 0) {
-                // Create default super admin
-                normalized.push({
-                    email: 'admin@admin.com',
-                    password: 'admin123',
-                    name: 'Super Admin',
-                    role: 'super'
-                });
-            }
             DB.setAdmins(normalized);
             return normalized;
         }
@@ -2400,14 +2391,14 @@
             const admins = DB.getAdmins();
             const found = backendAdmin || admins.find(a => a.email === email && a.password === password);
             if (found) {
-                currentAdmin = { ...found, role: found.role || (found.email === 'admin@admin.com' ? 'super' : 'staff') };
+                currentAdmin = { ...found, role: found.role || 'staff' };
                 sessionStorage.setItem('visa_admin_logged', 'true');
                 sessionStorage.setItem('visa_admin_email', email);
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('appScreen').classList.remove('hidden');
                 document.getElementById('adminName').textContent = found.name || 'Admin';
                 document.getElementById('adminInitial').textContent = (found.name || 'A').charAt(0).toUpperCase();
-                document.getElementById('userRoleDisplay').textContent = found.role === 'super' ? 'Super Admin' :
+                document.getElementById('userRoleDisplay').textContent = (found.role === 'super' || found.role === 'main') ? 'Super Admin' :
                     'Staff Admin';
                 showToast('Welcome, ' + (found.name || 'Admin') + '!', 'success');
                 // Build sidebar based on role
@@ -4021,7 +4012,7 @@
         // INIT
         // ============================================================
         console.log('🔥 Saudi Visa Admin Panel ready!');
-        console.log('📌 Demo: admin@admin.com / admin123');
+        console.log('🔒 Admin credentials are secured.');
         console.log('💾 Data stored in localStorage');
         console.log('📥 Import feature: Upload .txt file with Q. A. B. C. D. XX format');
 
@@ -4035,12 +4026,12 @@
             const admins = DB.getAdmins();
             const found = admins.find(a => a.email === email);
             if (found) {
-                currentAdmin = { ...found, role: found.role || (found.email === 'admin@admin.com' ? 'super' : 'staff') };
+                currentAdmin = { ...found, role: found.role || 'staff' };
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('appScreen').classList.remove('hidden');
                 document.getElementById('adminName').textContent = found.name || 'Admin';
                 document.getElementById('adminInitial').textContent = (found.name || 'A').charAt(0).toUpperCase();
-                document.getElementById('userRoleDisplay').textContent = found.role === 'super' ? 'Super Admin' :
+                document.getElementById('userRoleDisplay').textContent = (found.role === 'super' || found.role === 'main') ? 'Super Admin' :
                     'Staff Admin';
                 buildSidebar();
                 navigateTo('dashboard');
