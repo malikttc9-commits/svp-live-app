@@ -57,12 +57,24 @@ router.put('/bulk', requirePermission('canManageQuestions'), async (req, res) =>
   if (!questions) return res.status(400).json({ message: 'questions array is required' });
 
   const allowEmpty = req.body?.allowEmpty === true;
+  const forceReplaceAll = req.body?.forceReplaceAll === true;
   const currentDb = await readDb();
   const currentQuestions = Array.isArray(currentDb.questions) ? currentDb.questions : [];
 
   if (!allowEmpty && currentQuestions.length > 0 && questions.length === 0) {
     return res.status(409).json({
       message: 'Refusing to replace an existing question bank with an empty list without allowEmpty=true',
+    });
+  }
+
+  const currentTrades = new Set(currentQuestions.map(q => String(q?.trade || '').trim()).filter(Boolean));
+  const incomingTrades = new Set(questions.map(q => String(q?.trade || '').trim()).filter(Boolean));
+  const missingTrades = Array.from(currentTrades).filter(trade => !incomingTrades.has(trade));
+
+  if (!forceReplaceAll && missingTrades.length > 0) {
+    return res.status(409).json({
+      message: 'Refusing bulk overwrite because it would remove questions from existing trades. Use forceReplaceAll=true only for intentional delete actions.',
+      missingTrades,
     });
   }
 
