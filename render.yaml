@@ -14,6 +14,6 @@ services:
       - key: CORS_ORIGIN
         value: "*"
       - key: FRONTEND_DIR
-        value: ../
+        value: ./web
       - key: DATA_FILE
         value: ./data/db.json

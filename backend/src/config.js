@@ -15,7 +15,7 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || 'change-this-secret',
   corsOrigin: process.env.CORS_ORIGIN || '*',
   dataFile: path.resolve(backendRoot, process.env.DATA_FILE || './data/db.json'),
-  frontendDir: path.resolve(backendRoot, process.env.FRONTEND_DIR || '../'),
+  frontendDir: path.resolve(backendRoot, process.env.FRONTEND_DIR || './web'),
 };
 
 export const isProd = config.nodeEnv === 'production';
