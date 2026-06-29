@@ -2206,22 +2206,19 @@
             });
         }
 
+        function redirectToCanonicalAdminPanel() {
+            const base = (window.location.origin || '').replace(/\/$/, '');
+            window.location.href = `${base}/main`;
+        }
+
         function switchRole(role) {
             currentRole = role;
             document.querySelectorAll('.role-switcher button').forEach(b => b.classList.toggle('active', b.dataset.role ===
             role));
 
             if (role === 'admin') {
-                // Show admin login if not logged in, else show admin app
-                if (sessionStorage.getItem('visa_admin_logged') === 'true') {
-                    adminApp.classList.remove('hidden');
-                    adminLoginScreen.classList.add('hidden');
-                } else {
-                    adminLoginScreen.classList.remove('hidden');
-                    adminApp.classList.add('hidden');
-                }
-                userLoginScreen.classList.add('hidden');
-                userApp.classList.add('hidden');
+                redirectToCanonicalAdminPanel();
+                return;
             } else {
                 // Show user login if not logged in, else show user app
                 if (sessionStorage.getItem('visa_user_logged') === 'true') {
@@ -2237,7 +2234,7 @@
             }
         }
 
-        document.getElementById('switchToAdmin').addEventListener('click', () => switchRole('admin'));
+        document.getElementById('switchToAdmin').addEventListener('click', () => redirectToCanonicalAdminPanel());
         document.getElementById('switchToUser').addEventListener('click', () => switchRole('user'));
 
         // ============================================================
@@ -2270,11 +2267,9 @@
                 sessionStorage.setItem('visa_admin_email', admin.email);
                 sessionStorage.setItem('visa_admin_permissions', JSON.stringify(normalizePermissions(admin.permissions)));
                 setCurrentAdmin(admin);
-                renderAdminSidebar();
-                adminLoginScreen.classList.add('hidden');
-                adminApp.classList.remove('hidden');
                 showToast('Welcome ' + (admin.name || 'Admin') + '!', 'success');
-                adminNavigateTo('dashboard');
+                redirectToCanonicalAdminPanel();
+                return;
             } else {
                 document.getElementById('adminLoginErrorText').textContent = 'Invalid credentials.';
                 errorEl.classList.remove('hidden');
@@ -4537,31 +4532,19 @@
 
         // Check session states
         if (sessionStorage.getItem('visa_admin_logged') === 'true') {
-            const savedEmail = sessionStorage.getItem('visa_admin_email');
-            const admins = DB.getAdmins();
-            const admin = admins.find(a => a.email === savedEmail);
-            if (admin) {
-                setCurrentAdmin(admin);
-                renderAdminSidebar();
-            }
-            adminLoginScreen.classList.add('hidden');
-            adminApp.classList.remove('hidden');
-            adminNavigateTo('dashboard');
-            BackendBridge.hydrateAdminCache().then(ok => {
-                if (ok) adminNavigateTo('dashboard');
-            });
+            redirectToCanonicalAdminPanel();
         } else if (sessionStorage.getItem('visa_user_logged') === 'true') {
             userLoginScreen.classList.add('hidden');
             userApp.classList.remove('hidden');
             const savedUserId = sessionStorage.getItem('visa_user_id') || '';
             BackendBridge.hydrateCandidateCache(savedUserId).finally(() => loadUserDashboard());
         } else {
-            // Default: show admin login
-            switchRole('admin');
+            // Default: show user login on the combined portal page.
+            switchRole('user');
         }
 
         // Set default role switcher state
-        document.querySelector('.role-switcher button[data-role="admin"]').classList.add('active');
+        document.querySelector('.role-switcher button[data-role="user"]').classList.add('active');
     </script>
 
 </body>
