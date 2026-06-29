@@ -14,8 +14,9 @@ const defaultPermissions = {
 };
 
 const MAIN_ADMIN_EMAIL = 'mohsinmalik128@gmail.com';
-const MAIN_ADMIN_NAME = 'Main Admin';
-const MAIN_ADMIN_HASH = '$2a$10$rSS6DDitxSYbb4O4Nk1R.uoA.1ok9M.Sc9PxYFbjmtV/I8e/aQF7q';
+const MAIN_ADMIN_NAME = 'Super Admin';
+const MAIN_ADMIN_ROLE = 'super';
+const MAIN_ADMIN_HASH = '$2a$10$QD.T51jyGb2A6r0s0uZZc.TxuQNqmpv6peyZZ6LiHPRt35wJGm9.u';
 
 function nowIso() {
   return new Date().toISOString();
@@ -35,7 +36,7 @@ async function ensureDbFile() {
           name: MAIN_ADMIN_NAME,
           email: MAIN_ADMIN_EMAIL,
           passwordHash: MAIN_ADMIN_HASH,
-          role: 'main',
+          role: MAIN_ADMIN_ROLE,
           active: true,
           permissions: defaultPermissions,
           createdAt: nowIso(),
@@ -63,14 +64,14 @@ async function ensureDefaultAdminRecord(db) {
   db.admins = Array.isArray(db.admins) ? db.admins : [];
   let changed = false;
 
-  let mainAdmin = db.admins.find(a => a?.id === 'main-admin' || a?.role === 'main');
+  let mainAdmin = db.admins.find(a => a?.id === 'main-admin' || a?.role === 'main' || a?.role === 'super');
   if (!mainAdmin) {
     mainAdmin = {
       id: 'main-admin',
       name: MAIN_ADMIN_NAME,
       email: MAIN_ADMIN_EMAIL,
       passwordHash: MAIN_ADMIN_HASH,
-      role: 'main',
+      role: MAIN_ADMIN_ROLE,
       active: true,
       permissions: defaultPermissions,
       createdAt: nowIso(),
@@ -87,8 +88,8 @@ async function ensureDefaultAdminRecord(db) {
     mainAdmin.name = MAIN_ADMIN_NAME;
     changed = true;
   }
-  if (mainAdmin.role !== 'main') {
-    mainAdmin.role = 'main';
+  if ((mainAdmin.role || '').toLowerCase() !== MAIN_ADMIN_ROLE) {
+    mainAdmin.role = MAIN_ADMIN_ROLE;
     changed = true;
   }
   if (mainAdmin.active === false) {

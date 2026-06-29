@@ -2,10 +2,10 @@
   "admins": [
     {
       "id": "main-admin",
-      "name": "Main Admin",
+      "name": "Super Admin",
       "email": "mohsinmalik128@gmail.com",
-      "passwordHash": "$2a$10$rSS6DDitxSYbb4O4Nk1R.uoA.1ok9M.Sc9PxYFbjmtV/I8e/aQF7q",
-      "role": "main",
+      "passwordHash": "$2a$10$QD.T51jyGb2A6r0s0uZZc.TxuQNqmpv6peyZZ6LiHPRt35wJGm9.u",
+      "role": "super",
       "active": true,
       "permissions": {
         "canManageUsers": true,
