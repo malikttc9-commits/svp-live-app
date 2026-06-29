@@ -943,7 +943,7 @@
                     <i class="fas fa-tag text-slate-400 order-1"></i>
                     <span class="text-sm font-medium text-slate-600 order-1">Trade:</span>
                     <select id="questionTradeFilter" class="form-input py-1.5 px-3 order-1 w-full sm:w-auto sm:min-w-[145px] text-sm border-slate-200 rounded-lg" onchange="loadQuestions()"></select>
-                    <input type="text" id="questionSearchInput" class="form-input py-1.5 px-3 order-2 w-full sm:flex-1 sm:min-w-[200px] lg:flex-none lg:min-w-[220px] text-sm border-slate-200 rounded-lg" placeholder="Search tests" oninput="loadQuestions()" />
+                    <input type="text" id="questionSearchInput" class="form-input py-1.5 px-3 order-2 w-full sm:flex-1 sm:min-w-[200px] lg:flex-none lg:min-w-[220px] text-sm border-slate-200 rounded-lg" placeholder="Search question or answer" oninput="loadQuestions()" />
                     <input type="text" id="newTradeInput" class="form-input py-1.5 px-3 order-3 w-full sm:w-auto sm:min-w-[165px] text-sm border-slate-200 rounded-lg" placeholder="New trade name" />
                     <div class="order-4 w-full flex flex-wrap gap-2">
                         <button onclick="addNewTradeFromInput()" class="bg-[#0b2a4a] text-white px-2.5 py-2 basis-[calc(50%-0.25rem)] sm:basis-auto rounded-lg text-[12px] sm:text-sm text-center hover:bg-[#1a3d5f] transition-all sm:whitespace-nowrap">Add Trade</button>
@@ -2171,8 +2171,16 @@
                 const count = counts[trade] || 0;
                 return `<option value="${safeValue}">${trade}${count ? ` (${count})` : ''}</option>`;
             }).join('');
+            const questionTradeFilter = document.getElementById('questionTradeFilter');
+            if (questionTradeFilter) {
+                const currentValue = questionTradeFilter.value || '';
+                questionTradeFilter.innerHTML = '<option value="">All Trades</option>' + tradeOptions;
+                if (currentValue === '' || trades.includes(currentValue)) {
+                    questionTradeFilter.value = currentValue;
+                }
+            }
+
             [
-                document.getElementById('questionTradeFilter'),
                 document.getElementById('questionTrade'),
                 document.getElementById('importTrade'),
                 document.getElementById('userTrade')
@@ -3087,7 +3095,15 @@
             }
 
             if (search) {
-                filtered = filtered.filter(q => (q.text || '').toLowerCase().includes(search));
+                filtered = filtered.filter(q => {
+                    const haystack = [
+                        q.text,
+                        q.trade,
+                        q.id,
+                        ...(Array.isArray(q.options) ? q.options : [])
+                    ].filter(Boolean).join(' ').toLowerCase();
+                    return haystack.includes(search);
+                });
             }
             document.getElementById('questionCountLabel').textContent = filtered.length + ' tests';
 
