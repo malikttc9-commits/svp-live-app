@@ -1411,7 +1411,7 @@
                 const token = getAdminToken();
                 if (!token) return false;
                 try {
-                    const [users, questions, settings, trades, admins] = await Promise.all([
+                    const [usersRes, questionsRes, settingsRes, tradesRes, adminsRes] = await Promise.allSettled([
                         apiRequest('/users', {}, token),
                         apiRequest('/questions', {}, token),
                         apiRequest('/settings', {}, token),
@@ -1419,12 +1419,27 @@
                         apiRequest('/admins', {}, token)
                     ]);
 
-                    localStorage.setItem('visa_users', JSON.stringify(users || []));
-                    localStorage.setItem('visa_questions', JSON.stringify(questions || []));
-                    localStorage.setItem('visa_settings', JSON.stringify(settings || {}));
-                    localStorage.setItem('visa_trades', JSON.stringify(trades || []));
-                    localStorage.setItem('visa_admins', JSON.stringify(admins || []));
-                    return true;
+                    if (usersRes.status === 'fulfilled') {
+                        localStorage.setItem('visa_users', JSON.stringify(usersRes.value || []));
+                    }
+                    if (questionsRes.status === 'fulfilled') {
+                        localStorage.setItem('visa_questions', JSON.stringify(questionsRes.value || []));
+                    }
+                    if (settingsRes.status === 'fulfilled') {
+                        localStorage.setItem('visa_settings', JSON.stringify(settingsRes.value || {}));
+                    }
+                    if (tradesRes.status === 'fulfilled') {
+                        localStorage.setItem('visa_trades', JSON.stringify(tradesRes.value || []));
+                    }
+                    // Staff admins are not allowed to list admins on backend.
+                    if (adminsRes.status === 'fulfilled') {
+                        localStorage.setItem('visa_admins', JSON.stringify(adminsRes.value || []));
+                    }
+
+                    return usersRes.status === 'fulfilled' &&
+                        questionsRes.status === 'fulfilled' &&
+                        settingsRes.status === 'fulfilled' &&
+                        tradesRes.status === 'fulfilled';
                 } catch {
                     return false;
                 }
