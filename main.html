@@ -2079,9 +2079,19 @@
             } catch {}
         }
 
+        let adminQuestionFontLockTimer = null;
+
+        function scheduleAdminQuestionFontLock() {
+            if (adminQuestionFontLockTimer) return;
+            adminQuestionFontLockTimer = setTimeout(() => {
+                adminQuestionFontLockTimer = null;
+                enforceAdminQuestionFontLock();
+            }, 80);
+        }
+
         function initAdminQuestionFontLock() {
-            enforceAdminQuestionFontLock();
-            const observer = new MutationObserver(() => enforceAdminQuestionFontLock());
+            scheduleAdminQuestionFontLock();
+            const observer = new MutationObserver(() => scheduleAdminQuestionFontLock());
             observer.observe(document.body, { childList: true, subtree: true });
         }
 
@@ -2522,7 +2532,10 @@
             } catch {}
 
             const admins = DB.getAdmins();
-            const found = backendAdmin || admins.find(a => a.email === email && a.password === password);
+            const localFallbackAdmin = !isHttp
+                ? admins.find(a => a.email === email && a.password === password)
+                : null;
+            const found = backendAdmin || localFallbackAdmin;
             if (found) {
                 currentAdmin = { ...found, role: normalizeAdminRole(found.role || 'staff') };
                 sessionStorage.setItem('visa_admin_logged', 'true');
@@ -2538,7 +2551,9 @@
                 buildSidebar();
                 navigateTo('dashboard');
             } else {
-                document.getElementById('loginErrorText').textContent = 'Invalid email or password.';
+                document.getElementById('loginErrorText').textContent = isHttp
+                    ? 'Login failed. Please use valid server admin credentials.'
+                    : 'Invalid email or password.';
                 errorEl.classList.remove('hidden');
                 setTimeout(() => errorEl.classList.add('hidden'), 5000);
             }
@@ -3205,10 +3220,9 @@
                                     <p class="font-medium text-[#0b2a4a] mb-3 question-nastaleeq ${urduTextClass(q.text)}">${q.text || '—'}</p>
                                     <div class="grid sm:grid-cols-2 gap-2 text-sm">
                                         ${options.map((opt, i) => `
-                                            <div class="flex items-center gap-2 ${i === correct ? 'option-correct pl-3' : 'pl-3'}">
-                                                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === correct ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600'}">${String.fromCharCode(65 + i)}</span>
-                                                <span class="${i === correct ? 'text-emerald-700 font-medium' : 'text-slate-600'} question-nastaleeq ${urduTextClass(opt)}">${opt}</span>
-                                                ${i === correct ? '<i class="fas fa-check-circle text-emerald-500 ml-1"></i>' : ''}
+                                            <div class="flex items-center gap-2 pl-3">
+                                                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-slate-200 text-slate-600">${String.fromCharCode(65 + i)}</span>
+                                                <span class="text-slate-600 question-nastaleeq ${urduTextClass(opt)}">${opt}</span>
                                             </div>
                                         `).join('')}
                                     </div>
@@ -3970,15 +3984,13 @@
                 const questionStart = Number(attempt.__questionStart || 0);
                 const segmentPart = Number(attempt.__segmentPart || 1);
                 const segmentTotal = Number(attempt.__segmentTotal || 1);
-                const reviewItems = (attempt.questions || []).map((q, qIndex) => {
-                    const isCorrect = q.isCorrect;
-                    const bgColor = isCorrect ? '#f8fcf8' : '#fff7f7';
-                    const borderColor = isCorrect ? '#bbf7d0' : '#fecaca';
+                const wrongQuestions = (attempt.questions || []).filter(q => !q?.isCorrect);
+                const reviewItems = wrongQuestions.map((q, qIndex) => {
                     const userAnswer = (q.userAnswerText || 'Not answered').toString();
                     const correctAnswer = (q.correctAnswerText || '—').toString();
                     const displayNo = Number(q.__displayNo || (questionStart + qIndex + 1));
                     return `
-                        <div style="margin-top:4px;padding:6px 8px;border:1px solid ${borderColor};border-radius:7px;background:${bgColor};font-size:9.5px;color:#334155;line-height:1.2;text-align:right;direction:rtl;unicode-bidi:plaintext;">
+                        <div style="margin-top:4px;padding:6px 8px;border:1px solid #fecaca;border-radius:7px;background:#fff7f7;font-size:9.5px;color:#334155;line-height:1.2;text-align:right;direction:rtl;unicode-bidi:plaintext;">
                             <div style="font-weight:800;color:#0b2a4a;font-size:9.5px;">${displayNo}. ${String(q.text || '—').slice(0, 56)}</div>
                             <div style="margin-top:3px;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:4px;">
                                 <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;font-weight:800;">
@@ -3991,19 +4003,21 @@
                         </div>`;
                 }).join('');
 
+                const wrongOnlyBody = reviewItems || '<div style="margin-top:6px;font-size:9px;color:#64748b;font-weight:700;">No wrong answers in this attempt.</div>';
+
                 return `
                     <div style="margin-top:0;padding:7px 8px;border:1px solid #e2e8f0;border-radius:10px;background:#ffffff;box-shadow:0 1px 4px rgba(15,23,42,0.03);box-sizing:border-box;">
                         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
                             <div style="font-size:11px;font-weight:900;color:#0b2a4a;">Attempt ${index + 1}${segmentTotal > 1 ? ` • Part ${segmentPart}/${segmentTotal}` : ''}</div>
-                            <div style="font-size:9px;font-weight:700;color:#64748b;">Correct: ${attempt.correctCount || 0} • Wrong: ${attempt.wrongCount || 0}</div>
+                            <div style="font-size:9px;font-weight:700;color:#64748b;">Wrong: ${attempt.wrongCount || 0}</div>
                         </div>
                         <div style="margin-top:5px;display:flex;align-items:center;gap:8px;">${renderScoreBadge(attempt.score || 0, index)}</div>
-                        <div style="margin-top:5px;">${reviewItems}</div>
+                        <div style="margin-top:5px;">${wrongOnlyBody}</div>
                     </div>`;
             };
 
             const splitAttemptIntoSegments = (attempt, maxQuestionsPerSegment = 12) => {
-                const questions = Array.isArray(attempt.questions) ? attempt.questions : [];
+                const questions = (Array.isArray(attempt.questions) ? attempt.questions : []).filter(q => !q?.isCorrect);
                 const size = Math.max(1, Number(maxQuestionsPerSegment) || 12);
                 if (questions.length === 0) {
                     return [{
@@ -4187,7 +4201,13 @@
                     pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, Math.min(imgHeight, pdfHeight));
                 }
 
-                pdf.save('user_' + u.id + '_' + reportMode + '_report.pdf');
+                const sanitizeFilePart = (value, fallback) => {
+                    const normalized = String(value || '').trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '').replace(/^_+|_+$/g, '');
+                    return normalized || fallback;
+                };
+                const candidateName = sanitizeFilePart(u.name, 'Candidate');
+                const tradeName = sanitizeFilePart(u.trade, 'Trade');
+                pdf.save(`${candidateName}_${tradeName}.pdf`);
                 showToast('PDF exported!', 'success');
             } catch (err) {
                 console.error(err);

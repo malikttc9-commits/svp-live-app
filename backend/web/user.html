@@ -55,12 +55,16 @@
             font-family: 'Jameel Noorie Nastaleeq', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif !important;
             line-height: 1.95;
         }
+        @font-face {
+            font-family: 'Jameel Noori Nastaleeq Regular';
+            src: local('Jameel Noori Nastaleeq Regular'), local('Jameel Noori Nastaleeq'), local('Jameel Noorie Nastaleeq');
+        }
         .report-nastaleeq {
-            font-family: 'Jameel Noorie Nastaleeq', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif;
+            font-family: 'Jameel Noori Nastaleeq Regular', 'Jameel Noori Nastaleeq', 'Jameel Noorie Nastaleeq', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif;
         }
         .report-nastaleeq,
         .report-nastaleeq * {
-            font-family: 'Jameel Noorie Nastaleeq', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif !important;
+            font-family: 'Jameel Noori Nastaleeq Regular', 'Jameel Noori Nastaleeq', 'Jameel Noorie Nastaleeq', 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif !important;
         }
         ::-webkit-scrollbar {
             width: 6px;
@@ -2158,9 +2162,19 @@
             } catch {}
         }
 
+        let questionFontLockTimer = null;
+
+        function scheduleQuestionFontLock() {
+            if (questionFontLockTimer) return;
+            questionFontLockTimer = setTimeout(() => {
+                questionFontLockTimer = null;
+                enforceQuestionFontLock();
+            }, 80);
+        }
+
         function initQuestionFontLock() {
-            enforceQuestionFontLock();
-            const observer = new MutationObserver(() => enforceQuestionFontLock());
+            scheduleQuestionFontLock();
+            const observer = new MutationObserver(() => scheduleQuestionFontLock());
             observer.observe(document.body, { childList: true, subtree: true });
         }
 
@@ -3849,18 +3863,16 @@
                 const questionStart = Number(attempt.__questionStart || 0);
                 const segmentPart = Number(attempt.__segmentPart || 1);
                 const segmentTotal = Number(attempt.__segmentTotal || 1);
-                const reviewItems = (attempt.questions || []).map((q, qIndex) => {
-                    const isCorrect = !!q.isCorrect;
-                    const bgColor = isCorrect ? '#f7fcf8' : '#fff6f6';
-                    const borderColor = isCorrect ? '#bbf7d0' : '#fecaca';
+                const wrongQuestions = (attempt.questions || []).filter(q => !q?.isCorrect);
+                const reviewItems = wrongQuestions.map((q, qIndex) => {
                     const userAnswer = (q.userAnswerText || 'جواب نہیں دیا').toString();
                     const correctAnswer = (q.correctAnswerText || '—').toString();
                     const displayNo = Number(q.__displayNo || (questionStart + qIndex + 1));
                     return `
-                        <div style="margin-top:4px;padding:6px 8px;border:1px solid ${borderColor};border-radius:7px;background:${bgColor};font-size:10px;color:#334155;line-height:1.5;text-align:right;direction:rtl;unicode-bidi:plaintext;font-family:'Jameel Noorie Nastaleeq', 'Jameel Noori Nastaleeq','Noto Nastaliq Urdu','Noto Naskh Arabic',serif;">
+                        <div style="margin-top:4px;padding:6px 8px;border:1px solid #fecaca;border-radius:7px;background:#fff6f6;font-size:10px;color:#334155;line-height:1.5;text-align:right;direction:rtl;unicode-bidi:plaintext;font-family:'Jameel Noori Nastaleeq Regular', 'Jameel Noori Nastaleeq', 'Jameel Noorie Nastaleeq','Noto Nastaliq Urdu','Noto Naskh Arabic',serif;">
                             <div style="font-weight:800;color:#0b2a4a;font-size:10.5px;">${displayNo}. ${String(q.text || '—').slice(0, 88)}</div>
                             <div style="margin-top:3px;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:4px;">
-                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;background:${isCorrect ? '#dcfce7' : '#fee2e2'};color:${isCorrect ? '#166534' : '#991b1b'};border:1px solid ${isCorrect ? '#bbf7d0' : '#fecaca'};font-weight:800;direction:ltr;unicode-bidi:plaintext;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;font-weight:800;direction:ltr;unicode-bidi:plaintext;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">
                                     Candidate Response: ${userAnswer}
                                 </span>
                                 <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-weight:800;direction:ltr;unicode-bidi:plaintext;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">
@@ -3870,19 +3882,21 @@
                         </div>`;
                 }).join('');
 
+                const wrongOnlyBody = reviewItems || '<div style="margin-top:6px;font-size:9px;color:#64748b;font-weight:700;">No wrong answers in this attempt.</div>';
+
                 return `
                     <div style="padding:7px 8px;border:1px solid #e2e8f0;border-radius:10px;background:#ffffff;box-shadow:0 1px 4px rgba(15,23,42,0.03);height:100%;box-sizing:border-box;overflow:hidden;">
                         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
                             <div style="font-size:11px;font-weight:900;color:#0b2a4a;">Attempt ${index + 1}${segmentTotal > 1 ? ` • Part ${segmentPart}/${segmentTotal}` : ''}</div>
-                            <div style="font-size:9px;font-weight:800;color:#64748b;">Correct: ${attempt.correctCount || 0} • Wrong: ${attempt.wrongCount || 0}</div>
+                            <div style="font-size:9px;font-weight:800;color:#64748b;">Wrong: ${attempt.wrongCount || 0}</div>
                         </div>
                         <div style="margin-top:5px;display:flex;align-items:center;gap:8px;">${renderScoreBadge(attempt.score || 0, index)}</div>
-                        <div style="margin-top:5px;">${reviewItems}</div>
+                        <div style="margin-top:5px;">${wrongOnlyBody}</div>
                     </div>`;
             };
 
             const splitAttemptIntoSegments = (attempt, maxQuestionsPerSegment = 8) => {
-                const questions = Array.isArray(attempt.questions) ? attempt.questions : [];
+                const questions = (Array.isArray(attempt.questions) ? attempt.questions : []).filter(q => !q?.isCorrect);
                 const size = Math.max(1, Number(maxQuestionsPerSegment) || 8);
                 if (questions.length === 0) {
                     return [{
@@ -3921,7 +3935,7 @@
                 : 1;
 
             const summaryPage = `
-                <div style="width:${pageWidth}px;height:${pageHeight}px;padding:12px;font-family:'Jameel Noorie Nastaleeq', 'Jameel Noori Nastaleeq','Noto Nastaliq Urdu','Noto Naskh Arabic','Segoe UI',Tahoma,Arial,sans-serif;line-height:1.35;background:#f8fbff;box-sizing:border-box;overflow:hidden;">
+                <div style="width:${pageWidth}px;height:${pageHeight}px;padding:12px;font-family:'Jameel Noori Nastaleeq Regular', 'Jameel Noori Nastaleeq', 'Jameel Noorie Nastaleeq','Noto Nastaliq Urdu','Noto Naskh Arabic','Segoe UI',Tahoma,Arial,sans-serif;line-height:1.35;background:#f8fbff;box-sizing:border-box;overflow:hidden;">
                     <div style="height:100%;display:flex;flex-direction:column;gap:8px;min-height:0;">
                         <div style="padding:10px 12px;border-radius:10px;background:linear-gradient(135deg,#0b2a4a 0%,#2563eb 100%);color:white;box-shadow:0 5px 12px rgba(37,99,235,0.16);">
                             <div style="font-size:16px;font-weight:900;line-height:1.1;">${u.name || 'User'}</div>
@@ -3966,7 +3980,7 @@
                     : '<div style="height:100%;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;font-weight:700;">No attempt</div>';
 
                 return `
-                    <div style="width:${pageWidth}px;height:${pageHeight}px;padding:14px;font-family:'Jameel Noorie Nastaleeq', 'Jameel Noori Nastaleeq','Noto Nastaliq Urdu','Noto Naskh Arabic','Segoe UI',Tahoma,Arial,sans-serif;background:#f8fbff;box-sizing:border-box;overflow:hidden;">
+                    <div style="width:${pageWidth}px;height:${pageHeight}px;padding:14px;font-family:'Jameel Noori Nastaleeq Regular', 'Jameel Noori Nastaleeq', 'Jameel Noorie Nastaleeq','Noto Nastaliq Urdu','Noto Naskh Arabic','Segoe UI',Tahoma,Arial,sans-serif;background:#f8fbff;box-sizing:border-box;overflow:hidden;">
                         <div style="height:100%;display:flex;flex-direction:column;gap:8px;min-height:0;">
                             <div style="padding:10px 12px;border-radius:10px;background:#0f172a;color:white;display:flex;align-items:center;justify-content:space-between;">
                                 <div>
@@ -4036,7 +4050,7 @@
                 };
                 const candidateName = sanitizeFilePart(u.name, 'Candidate');
                 const tradeName = sanitizeFilePart(u.trade, 'Trade');
-                pdf.save(`${candidateName}_${tradeName}_${reportMode}_report.pdf`);
+                pdf.save(`${candidateName}_${tradeName}.pdf`);
                 showToast('PDF exported!', 'success');
             } catch (err) {
                 console.error(err);
@@ -4120,13 +4134,12 @@
                                     ${questionImage}
                                     <div class="grid sm:grid-cols-2 gap-2 text-sm">
                                         ${options.map((opt, i) => `
-                                            <div class="flex items-start gap-2 ${i === correct ? 'option-correct pl-3' : 'pl-3'}">
-                                                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === correct ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600'}">${String.fromCharCode(65 + i)}</span>
+                                            <div class="flex items-start gap-2 pl-3">
+                                                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-slate-200 text-slate-600">${String.fromCharCode(65 + i)}</span>
                                                 <div class="flex-1">
-                                                    <div class="${i === correct ? 'text-emerald-700 font-medium' : 'text-slate-600'} question-nastaleeq ${urduTextClass(opt)}">${opt}</div>
+                                                    <div class="text-slate-600 question-nastaleeq ${urduTextClass(opt)}">${opt}</div>
                                                     ${optionImages[i] ? `<img src="${optionImages[i]}" alt="Option image" class="mt-2 h-16 max-w-full rounded-lg border border-slate-200 object-cover" />` : ''}
                                                 </div>
-                                                ${i === correct ? '<i class="fas fa-check-circle text-emerald-500 ml-1"></i>' : ''}
                                             </div>
                                         `).join('')}
                                     </div>
