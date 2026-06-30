@@ -18,7 +18,8 @@ export const config = {
   port: Number(process.env.PORT || 4000),
   jwtSecret: process.env.JWT_SECRET || 'change-this-secret',
   corsOrigin: process.env.CORS_ORIGIN || '*',
-  dataFile: path.resolve(backendRoot, process.env.DATA_FILE || './data/db.json'),
+  dataFile: path.resolve(backendRoot, process.env.DATA_FILE || './data/db.sqlite'),
+  legacyDataFile: path.resolve(backendRoot, process.env.LEGACY_DATA_FILE || './data/db.json'),
   frontendDir: path.resolve(backendRoot, resolvedFrontendDir),
 };
 

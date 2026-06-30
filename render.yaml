@@ -16,4 +16,8 @@ services:
       - key: FRONTEND_DIR
         value: ./web
       - key: DATA_FILE
-        value: ./data/db.json
+        value: ./data/db.sqlite
+    disk:
+      name: app-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1

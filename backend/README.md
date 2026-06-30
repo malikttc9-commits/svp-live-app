@@ -7,7 +7,7 @@ Node.js + Express backend for the Saudi Visa Prep system.
 - CRUD APIs for users, questions, admins
 - Settings and trades endpoints
 - Report filtering endpoint (agent/trade/status/search)
-- JSON file persistence (no external DB required)
+- SQLite persistence (no external DB required)
 
 ## Quick Start
 1. Install dependencies:
@@ -33,4 +33,4 @@ Node.js + Express backend for the Saudi Visa Prep system.
 - GET /api/reports
 
 ## Notes
-Current frontend still uses localStorage. This backend is ready; frontend can be switched to API calls in the next step.
+Current frontend still uses localStorage for cache, but the backend source of truth is now the SQLite database file under `backend/data/`.

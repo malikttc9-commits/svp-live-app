@@ -3711,133 +3711,245 @@
         async function exportUserPDF(userId, reportMode = 'full', qualityProfile = 'standard') {
             const users = DB.getUsers();
             const u = users.find(x => x.id === userId);
-            if (!u) { showToast('Candidate not found', 'error'); return; }
+            if (!u) {
+                showToast('Candidate not found', 'error');
+                return;
+            }
 
             const scores = u.scores || [];
             const avg = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(0) : '—';
-            const attempts = Array.isArray(u.attemptsHistory) ? u.attemptsHistory : [];
-            const completedAttempts = attempts.filter(a => a.status === 'completed');
-            const totalCompleted = completedAttempts.length;
-            const totalIncomplete = attempts.filter(a => a.status === 'incomplete').length;
             const maxAttempts = u.maxAttempts || 15;
+            const attempts = Array.isArray(u.attemptsHistory) ? u.attemptsHistory : [];
+            const completedRegularAttemptsAll = attempts.filter(a => a.status === 'completed' && (a.mode || 'regular') === 'regular');
+            const wrongRetestAttemptsAll = attempts.filter(a => a.status === 'completed' && a.mode === 'wrong_retest');
+            const incompleteAttemptsAll = attempts.filter(a => a.status === 'incomplete');
+            const totalCompleted = completedRegularAttemptsAll.length;
+            const totalIncomplete = incompleteAttemptsAll.length;
+
             const pageWidth = 794;
             const pageHeight = 1123;
-            const compactScale = qualityProfile === 'hd' ? 2.2 : 1.35;
-            const jpegQuality = qualityProfile === 'hd' ? 0.95 : 0.84;
+            const compactScale = qualityProfile === 'hd' ? 1.8 : 1.2;
+            const jpegQuality = qualityProfile === 'hd' ? 0.86 : 0.74;
+
+            const attemptsByCycle = new Map();
+            completedRegularAttemptsAll.forEach((attempt, index) => {
+                const fallbackCycle = Math.floor(index / maxAttempts) + 1;
+                const rawCycle = Number(attempt.cycleNumber);
+                const cycleNumber = Number.isFinite(rawCycle) && rawCycle > 0 ? rawCycle : fallbackCycle;
+                if (!attemptsByCycle.has(cycleNumber)) attemptsByCycle.set(cycleNumber, []);
+                attemptsByCycle.get(cycleNumber).push({ ...attempt, __globalIndex: index });
+            });
+
+            const availableCycles = Array.from(attemptsByCycle.keys()).sort((a, b) => a - b);
+            const selectedCycleNumber = availableCycles.length > 0
+                ? availableCycles[availableCycles.length - 1]
+                : Math.max(1, Number(u.currentCycle || 1));
+            const selectedCycleAttempts = (attemptsByCycle.get(selectedCycleNumber) || []).map((attempt, idx) => ({ ...attempt, __cycleIndex: idx }));
+            const previousCycleNumbers = availableCycles.filter(cycle => cycle < selectedCycleNumber);
+
+            let wrongRetestForSelectedCycle = wrongRetestAttemptsAll.filter(a => (Number(a.cycleNumber) || selectedCycleNumber) === selectedCycleNumber);
+            if (wrongRetestForSelectedCycle.length === 0 && wrongRetestAttemptsAll.length > 0) {
+                wrongRetestForSelectedCycle = [wrongRetestAttemptsAll[wrongRetestAttemptsAll.length - 1]];
+            }
 
             const renderScoreBadge = (score, index) => {
                 const percent = Math.max(0, Math.min(100, Number(score) || 0));
-                const color = percent >= 80 ? '#16a34a' : '#dc2626';
+                const color = percent >= 80 ? '#16a34a' : '#b91c1c';
                 return `
                     <div style="width:54px;height:54px;border-radius:50%;padding:4px;background:conic-gradient(${color} 0deg ${percent * 3.6}deg,#e2e8f0 ${percent * 3.6}deg 360deg);display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;">
                         <div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;">
-                            <div style="font-size:11px;font-weight:800;color:#0b2a4a;">${percent}%</div>
+                            <div style="font-size:11px;font-weight:900;color:${color};">${percent}%</div>
                             <div style="font-size:8px;color:#64748b;">A${index + 1}</div>
                         </div>
                     </div>`;
             };
 
-            const scoreHistory = completedAttempts.length > 0
-                ? completedAttempts.map((a, i) => renderScoreBadge(a.score, i)).join(' ')
-                : '<span style="color:#64748b;">No completed attempts yet</span>';
+            const scoreHistory = selectedCycleAttempts.length > 0
+                ? selectedCycleAttempts.map((a, i) => renderScoreBadge(a.score, i)).join(' ')
+                : '<span style="color:#64748b;">No completed attempts in latest round yet</span>';
 
             const createOverviewAttemptCard = (attempt, index) => {
                 const percent = Math.max(0, Math.min(100, Number(attempt.score) || 0));
                 return `
-                    <div style="padding:7px 8px;border:1px solid #e2e8f0;border-radius:9px;background:#ffffff;display:flex;align-items:center;gap:8px;min-height:58px;box-sizing:border-box;">
-                        <div style="flex:0 0 auto;transform:scale(0.86);transform-origin:center;">${renderScoreBadge(percent, index)}</div>
+                    <div style="padding:8px 9px;border:1px solid #e2e8f0;border-radius:10px;background:#ffffff;display:flex;align-items:center;gap:8px;min-height:64px;box-sizing:border-box;">
+                        <div style="flex:0 0 auto;transform:scale(0.88);transform-origin:center;">${renderScoreBadge(percent, index)}</div>
                         <div style="flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;font-size:9px;line-height:1.1;">
                             <div style="padding:5px 6px;border-radius:7px;background:#f8fafc;border:1px solid #e2e8f0;">
-                                <div style="color:#64748b;font-weight:700;">Correct</div>
-                                <div style="color:#0b2a4a;font-weight:800;font-size:12px;">${attempt.correctCount || 0}</div>
+                                <div style="color:#64748b;font-weight:800;">Correct</div>
+                                <div style="color:#166534;font-weight:900;font-size:12px;">${attempt.correctCount || 0}</div>
+                            </div>
+                            <div style="padding:5px 6px;border-radius:7px;background:#fff7f7;border:1px solid #fecaca;">
+                                <div style="color:#991b1b;font-weight:800;">Wrong</div>
+                                <div style="color:#991b1b;font-weight:900;font-size:12px;">${attempt.wrongCount || 0}</div>
                             </div>
                             <div style="padding:5px 6px;border-radius:7px;background:#f8fafc;border:1px solid #e2e8f0;">
-                                <div style="color:#64748b;font-weight:700;">Wrong</div>
-                                <div style="color:#0b2a4a;font-weight:800;font-size:12px;">${attempt.wrongCount || 0}</div>
-                            </div>
-                            <div style="padding:5px 6px;border-radius:7px;background:#f8fafc;border:1px solid #e2e8f0;">
-                                <div style="color:#64748b;font-weight:700;">Attempt</div>
-                                <div style="color:#0b2a4a;font-weight:800;font-size:12px;">${index + 1}</div>
+                                <div style="color:#64748b;font-weight:800;">Attempt</div>
+                                <div style="color:#0b2a4a;font-weight:900;font-size:12px;">${index + 1}</div>
                             </div>
                         </div>
                     </div>`;
             };
 
+            const buildCycleSummary = (cycleNumber) => {
+                const attemptsInCycle = attemptsByCycle.get(cycleNumber) || [];
+                if (attemptsInCycle.length === 0) return null;
+                const avgScore = Math.round(attemptsInCycle.reduce((sum, attempt) => sum + (Number(attempt.score) || 0), 0) / attemptsInCycle.length);
+                const bestScore = Math.max(...attemptsInCycle.map(attempt => Number(attempt.score) || 0));
+                const totalWrong = attemptsInCycle.reduce((sum, attempt) => sum + (Number(attempt.wrongCount) || 0), 0);
+                return { cycleNumber, count: attemptsInCycle.length, avgScore, bestScore, totalWrong };
+            };
+
+            const previousCycleCards = previousCycleNumbers
+                .map(buildCycleSummary)
+                .filter(Boolean)
+                .slice(-6)
+                .reverse()
+                .map(summary => `
+                    <div style="padding:7px 8px;border:1px solid #e2e8f0;border-radius:9px;background:#ffffff;">
+                        <div style="font-size:10px;font-weight:900;color:#0b2a4a;">Round ${summary.cycleNumber}</div>
+                        <div style="margin-top:4px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;font-size:8.5px;line-height:1.1;">
+                            <div style="padding:4px 5px;border-radius:6px;background:#f8fafc;border:1px solid #e2e8f0;text-align:center;"><div style="color:#64748b;font-weight:800;">Att</div><div style="color:#0b2a4a;font-weight:900;">${summary.count}</div></div>
+                            <div style="padding:4px 5px;border-radius:6px;background:#f8fafc;border:1px solid #e2e8f0;text-align:center;"><div style="color:#64748b;font-weight:800;">Avg</div><div style="color:#0b2a4a;font-weight:900;">${summary.avgScore}%</div></div>
+                            <div style="padding:4px 5px;border-radius:6px;background:#f8fafc;border:1px solid #e2e8f0;text-align:center;"><div style="color:#64748b;font-weight:800;">Best</div><div style="color:#0b2a4a;font-weight:900;">${summary.bestScore}%</div></div>
+                            <div style="padding:4px 5px;border-radius:6px;background:#fff7f7;border:1px solid #fecaca;text-align:center;"><div style="color:#991b1b;font-weight:800;">Wrong</div><div style="color:#991b1b;font-weight:900;">${summary.totalWrong}</div></div>
+                        </div>
+                    </div>`)
+                .join('');
+
+            const previousRoundsSummaryHtml = `
+                <div style="padding:8px 9px;border-radius:9px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+                    <div style="font-size:11px;font-weight:900;color:#0b2a4a;line-height:1;">Previous Rounds Overview</div>
+                    <div style="margin-top:6px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;">
+                        ${previousCycleCards || '<div style="grid-column:1 / -1;font-size:9px;color:#64748b;">No previous rounds available.</div>'}
+                    </div>
+                </div>`;
+
+            const wrongRetestSummaryHtml = `
+                <div style="padding:8px 9px;border-radius:9px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+                    <div style="font-size:11px;font-weight:900;color:#0b2a4a;line-height:1;">Wrong Answers Retest (Latest Round)</div>
+                    ${wrongRetestForSelectedCycle.length > 0
+                        ? `<div style="margin-top:6px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;font-size:9px;line-height:1.1;">
+                            <div style="padding:6px;border-radius:7px;background:#f8fafc;border:1px solid #e2e8f0;"><div style="color:#64748b;font-weight:800;">Retests</div><div style="margin-top:2px;color:#0b2a4a;font-weight:900;">${wrongRetestForSelectedCycle.length}</div></div>
+                            <div style="padding:6px;border-radius:7px;background:#f8fafc;border:1px solid #e2e8f0;"><div style="color:#64748b;font-weight:800;">Latest Score</div><div style="margin-top:2px;color:#0b2a4a;font-weight:900;">${Number(wrongRetestForSelectedCycle[wrongRetestForSelectedCycle.length - 1].score) || 0}%</div></div>
+                            <div style="padding:6px;border-radius:7px;background:#f8fafc;border:1px solid #e2e8f0;"><div style="color:#64748b;font-weight:800;">Best Score</div><div style="margin-top:2px;color:#0b2a4a;font-weight:900;">${Math.max(...wrongRetestForSelectedCycle.map(item => Number(item.score) || 0))}%</div></div>
+                        </div>`
+                        : '<div style="margin-top:6px;font-size:9px;color:#64748b;">No wrong-answers retest taken in latest round.</div>'}
+                </div>`;
+
+            const incompleteSummaryHtml = `
+                <div style="padding:8px 9px;border-radius:9px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+                    <div style="font-size:11px;font-weight:900;color:#0b2a4a;line-height:1;">Attempt Completion Summary</div>
+                    <div style="margin-top:6px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;">
+                        <div style="padding:6px;border-radius:7px;background:#f8fafc;border:1px solid #e2e8f0;"><div style="font-size:9px;color:#64748b;font-weight:800;">Total Completed</div><div style="margin-top:2px;font-size:12px;color:#0b2a4a;font-weight:900;">${totalCompleted}</div></div>
+                        <div style="padding:6px;border-radius:7px;background:#fff7ed;border:1px solid #fed7aa;"><div style="font-size:9px;color:#9a3412;font-weight:800;">Total Incomplete</div><div style="margin-top:2px;font-size:12px;color:#9a3412;font-weight:900;">${totalIncomplete}</div></div>
+                    </div>
+                </div>`;
+
             const createFullAttemptCard = (attempt, index) => {
+                const questionStart = Number(attempt.__questionStart || 0);
+                const segmentPart = Number(attempt.__segmentPart || 1);
+                const segmentTotal = Number(attempt.__segmentTotal || 1);
                 const reviewItems = (attempt.questions || []).map((q, qIndex) => {
-                    const isCorrect = q.isCorrect;
-                    const bgColor = isCorrect ? '#f8fcf8' : '#fff7f7';
+                    const isCorrect = !!q.isCorrect;
+                    const bgColor = isCorrect ? '#f7fcf8' : '#fff6f6';
                     const borderColor = isCorrect ? '#bbf7d0' : '#fecaca';
-                    const userAnswer = (q.userAnswerText || 'Not answered').toString();
+                    const userAnswer = (q.userAnswerText || 'جواب نہیں دیا').toString();
                     const correctAnswer = (q.correctAnswerText || '—').toString();
+                    const displayNo = Number(q.__displayNo || (questionStart + qIndex + 1));
                     return `
-                        <div style="margin-top:5px;padding:6px 8px;border:1px solid ${borderColor};border-radius:7px;background:${bgColor};font-size:10px;color:#334155;">
-                            <div style="font-weight:700;color:#0b2a4a;">${qIndex + 1}. ${String(q.text || '—').slice(0, 65)}</div>
-                            <div style="margin-top:2px;">Ans: ${userAnswer}</div>
-                            <div style="margin-top:1px;color:#166534;">Correct: ${correctAnswer}</div>
+                        <div style="margin-top:4px;padding:6px 8px;border:1px solid ${borderColor};border-radius:7px;background:${bgColor};font-size:10px;color:#334155;line-height:1.5;text-align:right;direction:rtl;unicode-bidi:plaintext;font-family:'Jameel Noorie Nastaleeq', 'Jameel Noori Nastaleeq','Noto Nastaliq Urdu','Noto Naskh Arabic',serif;">
+                            <div style="font-weight:800;color:#0b2a4a;font-size:10.5px;">${displayNo}. ${String(q.text || '—').slice(0, 88)}</div>
+                            <div style="margin-top:3px;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:4px;">
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;background:${isCorrect ? '#dcfce7' : '#fee2e2'};color:${isCorrect ? '#166534' : '#991b1b'};border:1px solid ${isCorrect ? '#bbf7d0' : '#fecaca'};font-weight:800;direction:ltr;unicode-bidi:plaintext;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">
+                                    Candidate Response: ${userAnswer}
+                                </span>
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;font-weight:800;direction:ltr;unicode-bidi:plaintext;font-family:'Segoe UI',Tahoma,Arial,sans-serif;">
+                                    Correct Response: ${correctAnswer}
+                                </span>
+                            </div>
                         </div>`;
                 }).join('');
 
                 return `
-                    <div style="margin-top:8px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:10px;background:#ffffff;box-shadow:0 1px 4px rgba(15,23,42,0.03);">
-                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                            <div style="font-size:12px;font-weight:800;color:#0b2a4a;">Attempt ${index + 1}</div>
-                            <div style="font-size:10px;color:#64748b;">Correct: ${attempt.correctCount || 0} • Wrong: ${attempt.wrongCount || 0}</div>
+                    <div style="padding:7px 8px;border:1px solid #e2e8f0;border-radius:10px;background:#ffffff;box-shadow:0 1px 4px rgba(15,23,42,0.03);height:100%;box-sizing:border-box;overflow:hidden;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                            <div style="font-size:11px;font-weight:900;color:#0b2a4a;">Attempt ${index + 1}${segmentTotal > 1 ? ` • Part ${segmentPart}/${segmentTotal}` : ''}</div>
+                            <div style="font-size:9px;font-weight:800;color:#64748b;">Correct: ${attempt.correctCount || 0} • Wrong: ${attempt.wrongCount || 0}</div>
                         </div>
-                        <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">${renderScoreBadge(attempt.score || 0, index)}</div>
-                        <div style="margin-top:6px;">${reviewItems}</div>
+                        <div style="margin-top:5px;display:flex;align-items:center;gap:8px;">${renderScoreBadge(attempt.score || 0, index)}</div>
+                        <div style="margin-top:5px;">${reviewItems}</div>
                     </div>`;
             };
 
-            const estimateAttemptHeight = (attempt) => {
-                const questionCount = (attempt.questions || []).length;
-                return 128 + Math.max(0, questionCount) * 24;
+            const splitAttemptIntoSegments = (attempt, maxQuestionsPerSegment = 8) => {
+                const questions = Array.isArray(attempt.questions) ? attempt.questions : [];
+                const size = Math.max(1, Number(maxQuestionsPerSegment) || 8);
+                if (questions.length === 0) {
+                    return [{
+                        ...attempt,
+                        questions: [],
+                        __segmentPart: 1,
+                        __segmentTotal: 1,
+                        __questionStart: 0
+                    }];
+                }
+
+                const segments = [];
+                const totalParts = Math.ceil(questions.length / size);
+                for (let start = 0; start < questions.length; start += size) {
+                    const chunk = questions.slice(start, start + size).map((question, chunkIndex) => ({
+                        ...question,
+                        __displayNo: start + chunkIndex + 1
+                    }));
+                    segments.push({
+                        ...attempt,
+                        questions: chunk,
+                        __segmentPart: segments.length + 1,
+                        __segmentTotal: totalParts,
+                        __questionStart: start
+                    });
+                }
+                return segments;
             };
 
-            const overviewItemsHtml = attempts.length > 0
-                ? attempts.map((attempt, index) => createOverviewAttemptCard(attempt, index)).join('')
-                : '<div style="grid-column:1 / -1;padding:10px 12px;border:1px dashed #cbd5e1;border-radius:10px;background:#fff;color:#64748b;font-size:11px;text-align:center;">No completed attempts yet</div>';
-            const overviewScale = attempts.length > 0
-                ? Math.min(1, Math.max(0.58, (pageHeight - 288) / (260 + Math.ceil(attempts.length / 2) * 66)))
+            const selectedCycleOverviewHtml = selectedCycleAttempts.length > 0
+                ? selectedCycleAttempts.map((attempt, index) => createOverviewAttemptCard(attempt, index)).join('')
+                : '<div style="grid-column:1 / -1;padding:10px 12px;border:1px dashed #cbd5e1;border-radius:10px;background:#fff;color:#64748b;font-size:11px;text-align:center;">No completed attempts in latest round</div>';
+
+            const selectedCycleScale = selectedCycleAttempts.length > 0
+                ? Math.min(1, Math.max(0.58, (pageHeight - 410) / (220 + Math.ceil(selectedCycleAttempts.length / 2) * 66)))
                 : 1;
 
             const summaryPage = `
-                <div style="width:${pageWidth}px;height:${pageHeight}px;padding:12px;font-family:'Jameel Noorie Nastaleeq', 'Jameel Noori Nastaleeq','Noto Nastaliq Urdu','Noto Naskh Arabic','Segoe UI',Tahoma,Arial,sans-serif;background:#f8fbff;box-sizing:border-box;overflow:hidden;">
+                <div style="width:${pageWidth}px;height:${pageHeight}px;padding:12px;font-family:'Jameel Noorie Nastaleeq', 'Jameel Noori Nastaleeq','Noto Nastaliq Urdu','Noto Naskh Arabic','Segoe UI',Tahoma,Arial,sans-serif;line-height:1.35;background:#f8fbff;box-sizing:border-box;overflow:hidden;">
                     <div style="height:100%;display:flex;flex-direction:column;gap:8px;min-height:0;">
                         <div style="padding:10px 12px;border-radius:10px;background:linear-gradient(135deg,#0b2a4a 0%,#2563eb 100%);color:white;box-shadow:0 5px 12px rgba(37,99,235,0.16);">
-                            <div style="font-size:16px;font-weight:800;line-height:1.1;">${u.name || 'User'}</div>
-                            <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;font-size:9px;line-height:1.1;">
+                            <div style="font-size:16px;font-weight:900;line-height:1.1;">${u.name || 'User'}</div>
+                            <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;font-size:9px;line-height:1.1;font-weight:700;">
                                 <span style="padding:3px 6px;border-radius:999px;background:rgba(255,255,255,0.16);">Trade: ${u.trade || '—'}</span>
                                 <span style="padding:3px 6px;border-radius:999px;background:rgba(255,255,255,0.16);">Mobile: ${u.mobile || '—'}</span>
                                 <span style="padding:3px 6px;border-radius:999px;background:rgba(255,255,255,0.16);">Candidate ID: ${u.id || '—'}</span>
+                                <span style="padding:3px 6px;border-radius:999px;background:rgba(255,255,255,0.16);">Latest Round: ${selectedCycleNumber}</span>
                             </div>
                         </div>
-                        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;">
-                            <div style="padding:6px 7px;border-radius:8px;background:#ffffff;border:1px solid #dbeafe;box-shadow:0 1px 3px rgba(15,23,42,0.03);">
-                                <div style="font-size:9px;font-weight:700;color:#64748b;">Avg</div>
-                                <div style="margin-top:2px;font-size:13px;font-weight:800;color:#0b2a4a;">${avg}%</div>
-                            </div>
-                            <div style="padding:6px 7px;border-radius:8px;background:#ffffff;border:1px solid #dcfce7;box-shadow:0 1px 3px rgba(15,23,42,0.03);">
-                                <div style="font-size:9px;font-weight:700;color:#64748b;">Attempts</div>
-                                <div style="margin-top:2px;font-size:13px;font-weight:800;color:#16a34a;">${totalCompleted}/${maxAttempts}</div>
-                            </div>
-                            <div style="padding:6px 7px;border-radius:8px;background:#ffffff;border:1px solid #fef3c7;box-shadow:0 1px 3px rgba(15,23,42,0.03);">
-                                <div style="font-size:9px;font-weight:700;color:#64748b;">Wrong</div>
-                                <div style="margin-top:2px;font-size:13px;font-weight:800;color:#d97706;">${attempts.reduce((sum, item) => sum + (item.wrongCount || 0), 0)}</div>
-                            </div>
-                            <div style="padding:6px 7px;border-radius:8px;background:#ffffff;border:1px solid #ede9fe;box-shadow:0 1px 3px rgba(15,23,42,0.03);">
-                                <div style="font-size:9px;font-weight:700;color:#64748b;">Status</div>
-                                <div style="margin-top:2px;font-size:13px;font-weight:800;color:#7c3aed;">${u.passed ? 'Passed' : 'In Progress'}</div>
-                            </div>
+                        <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;">
+                            <div style="padding:6px 7px;border-radius:8px;background:#ffffff;border:1px solid #dbeafe;box-shadow:0 1px 3px rgba(15,23,42,0.03);"><div style="font-size:9px;font-weight:800;color:#64748b;">Avg</div><div style="margin-top:2px;font-size:13px;font-weight:900;color:#0b2a4a;">${avg}%</div></div>
+                            <div style="padding:6px 7px;border-radius:8px;background:#ffffff;border:1px solid #dcfce7;box-shadow:0 1px 3px rgba(15,23,42,0.03);"><div style="font-size:9px;font-weight:800;color:#64748b;">Latest Round</div><div style="margin-top:2px;font-size:13px;font-weight:900;color:#16a34a;">${selectedCycleAttempts.length}/${maxAttempts}</div></div>
+                            <div style="padding:6px 7px;border-radius:8px;background:#ffffff;border:1px solid #fef3c7;box-shadow:0 1px 3px rgba(15,23,42,0.03);"><div style="font-size:9px;font-weight:800;color:#64748b;">Total Completed</div><div style="margin-top:2px;font-size:13px;font-weight:900;color:#0b2a4a;">${totalCompleted}</div></div>
+                            <div style="padding:6px 7px;border-radius:8px;background:#ffffff;border:1px solid #fee2e2;box-shadow:0 1px 3px rgba(15,23,42,0.03);"><div style="font-size:9px;font-weight:800;color:#64748b;">Incomplete</div><div style="margin-top:2px;font-size:13px;font-weight:900;color:#991b1b;">${totalIncomplete}</div></div>
+                            <div style="padding:6px 7px;border-radius:8px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(15,23,42,0.03);"><div style="font-size:9px;font-weight:800;color:#64748b;">Status</div><div style="margin-top:2px;font-size:13px;font-weight:900;color:#7c3aed;">${u.passed ? 'Passed' : 'In Progress'}</div></div>
                         </div>
                         <div style="padding:8px 9px;border-radius:9px;background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(15,23,42,0.03);">
-                            <div style="font-size:11px;font-weight:800;color:#0b2a4a;line-height:1;">Score History</div>
+                            <div style="font-size:11px;font-weight:900;color:#0b2a4a;line-height:1;">Score History (Latest Round)</div>
                             <div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;">${scoreHistory}</div>
                         </div>
+                        ${previousRoundsSummaryHtml}
+                        ${wrongRetestSummaryHtml}
+                        ${incompleteSummaryHtml}
                         <div style="flex:1;min-height:0;overflow:hidden;">
-                            <div style="transform:scale(${overviewScale});transform-origin:top left;width:${pageWidth / overviewScale}px;">
+                            <div style="transform:scale(${selectedCycleScale});transform-origin:top left;width:${pageWidth / selectedCycleScale}px;">
                                 <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-items:start;">
-                                    ${overviewItemsHtml}
+                                    ${selectedCycleOverviewHtml}
                                 </div>
                             </div>
                         </div>
@@ -3845,36 +3957,48 @@
                     </div>
                 </div>`;
 
-            let currentPageContent = '';
-            let currentPageHeight = 110;
-            const pages = reportMode === 'overview' ? [summaryPage] : [summaryPage];
+            const createDualAttemptPage = (leftSegment, rightSegment, pageNo) => {
+                const leftCard = leftSegment
+                    ? createFullAttemptCard(leftSegment, Number(leftSegment.__attemptIndex || 0))
+                    : '<div style="height:100%;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;font-weight:700;">No attempt</div>';
+                const rightCard = rightSegment
+                    ? createFullAttemptCard(rightSegment, Number(rightSegment.__attemptIndex || 0))
+                    : '<div style="height:100%;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;font-weight:700;">No attempt</div>';
 
-            const pushAttemptPage = (content, pageNo) => {
-                pages.push(`
-                    <div style="width:${pageWidth}px;height:${pageHeight}px;padding:16px;font-family:'Jameel Noorie Nastaleeq', 'Jameel Noori Nastaleeq','Noto Nastaliq Urdu','Noto Naskh Arabic','Segoe UI',Tahoma,Arial,sans-serif;background:#f8fbff;box-sizing:border-box;">
-                        <div style="padding:10px 12px;border-radius:10px;background:linear-gradient(135deg,#0b2a4a 0%,#2563eb 100%);color:white;font-size:13px;font-weight:800;">Attempt Review</div>
-                        ${content}
-                        <div style="margin-top:10px;text-align:center;font-size:9px;color:#94a3b8;">Page ${pageNo}</div>
-                    </div>`);
+                return `
+                    <div style="width:${pageWidth}px;height:${pageHeight}px;padding:14px;font-family:'Jameel Noorie Nastaleeq', 'Jameel Noori Nastaleeq','Noto Nastaliq Urdu','Noto Naskh Arabic','Segoe UI',Tahoma,Arial,sans-serif;background:#f8fbff;box-sizing:border-box;overflow:hidden;">
+                        <div style="height:100%;display:flex;flex-direction:column;gap:8px;min-height:0;">
+                            <div style="padding:10px 12px;border-radius:10px;background:#0f172a;color:white;display:flex;align-items:center;justify-content:space-between;">
+                                <div>
+                                    <div style="font-size:14px;font-weight:900;line-height:1.1;">Latest Round Detailed Review</div>
+                                    <div style="font-size:9px;opacity:0.9;margin-top:2px;">Round ${selectedCycleNumber} • 2 attempts per page</div>
+                                </div>
+                                <div style="font-size:11px;font-weight:800;">Page ${pageNo}</div>
+                            </div>
+                            <div style="flex:1;min-height:0;border:1px solid #dbeafe;border-radius:12px;background:#ffffff;padding:8px;box-sizing:border-box;position:relative;overflow:hidden;">
+                                <div style="position:absolute;top:10px;bottom:10px;left:50%;width:1px;background:#cbd5e1;"></div>
+                                <div style="height:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                                    <div style="min-height:0;overflow:hidden;">${leftCard}</div>
+                                    <div style="min-height:0;overflow:hidden;">${rightCard}</div>
+                                </div>
+                            </div>
+                            <div style="text-align:center;font-size:8px;color:#94a3b8;line-height:1;">Generated: ${new Date().toLocaleString()} • Saudi Visa Admin Panel</div>
+                        </div>
+                    </div>`;
             };
 
+            const pages = [summaryPage];
             if (reportMode !== 'overview') {
-                attempts.forEach((attempt, index) => {
-                    const cardHtml = createFullAttemptCard(attempt, index);
-                    const cardHeight = estimateAttemptHeight(attempt) + 10;
-                    if (currentPageHeight + cardHeight > pageHeight - 120) {
-                        if (currentPageContent) {
-                            pushAttemptPage(currentPageContent, pages.length + 1);
-                        }
-                        currentPageContent = '';
-                        currentPageHeight = 110;
-                    }
-                    currentPageContent += cardHtml;
-                    currentPageHeight += cardHeight;
-                });
+                const normalizedAttempts = selectedCycleAttempts.map((attempt, index) => ({
+                    ...attempt,
+                    __attemptIndex: index
+                }));
+                const segmentedAttempts = normalizedAttempts.flatMap(attempt => splitAttemptIntoSegments(attempt, 8));
 
-                if (currentPageContent) {
-                    pushAttemptPage(currentPageContent, pages.length + 1);
+                for (let i = 0; i < segmentedAttempts.length; i += 2) {
+                    const leftSegment = segmentedAttempts[i] || null;
+                    const rightSegment = segmentedAttempts[i + 1] || null;
+                    pages.push(createDualAttemptPage(leftSegment, rightSegment, pages.length + 1));
                 }
             }
 
@@ -3894,7 +4018,12 @@
 
                 for (let index = 0; index < exportPages.length; index++) {
                     tempDiv.innerHTML = exportPages[index];
-                    const canvas = await html2canvas(tempDiv, { scale: compactScale, useCORS: true, logging: false, backgroundColor: '#ffffff' });
+                    const canvas = await html2canvas(tempDiv, {
+                        scale: compactScale,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    });
                     const imgData = canvas.toDataURL('image/jpeg', jpegQuality);
                     const imgHeight = (canvas.height * pdfWidth) / canvas.width;
                     if (index > 0) pdf.addPage();
