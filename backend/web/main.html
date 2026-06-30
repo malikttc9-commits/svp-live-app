@@ -2197,11 +2197,7 @@
 
         function getTrades() {
             const saved = DB.get('trades', getDefaultTrades());
-            const fromQuestions = DB.getQuestions().map(q => q.trade).filter(Boolean);
-            const fromUsers = DB.getUsers().map(u => u.trade).filter(Boolean);
-            const fromVisaCategory = DB.getUsers().map(u => u.visaCategory).filter(Boolean);
-            const allTrades = [...(Array.isArray(saved) ? saved : []), ...fromQuestions, ...fromUsers, ...fromVisaCategory];
-            const normalized = [...new Set(allTrades.filter(Boolean).map(t => String(t).trim()).filter(Boolean))];
+            const normalized = [...new Set((Array.isArray(saved) ? saved : []).filter(Boolean).map(t => String(t).trim()).filter(Boolean))];
             return normalized.length ? normalized : getDefaultTrades();
         }
 

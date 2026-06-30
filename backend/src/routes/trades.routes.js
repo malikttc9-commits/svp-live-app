@@ -6,9 +6,7 @@ const router = Router();
 
 router.get('/', requireAdmin, async (_req, res) => {
   const db = await readDb();
-  const fromQuestions = (db.questions || []).map(q => q.trade).filter(Boolean);
-  const fromUsers = (db.users || []).map(u => u.trade).filter(Boolean);
-  const trades = [...new Set([...(db.trades || []), ...fromQuestions, ...fromUsers].map(String).map(t => t.trim()).filter(Boolean))];
+  const trades = [...new Set((db.trades || []).map(String).map(t => t.trim()).filter(Boolean))];
   res.json(trades);
 });
 
